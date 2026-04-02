@@ -47,7 +47,7 @@ const AppRoutes = () => {
                 <Route path="/documentation" element={<Documentation />} />
                 <Route path="/api-docs" element={<ApiDocs />} />
                 <Route path="/anime/:id" element={<AnimeDetail />} />
-                <Route path="/watch/:episodeId" element={<Watch />} />
+                <Route path="/watch/:animeId/:episodeNumber" element={<Watch />} />
                 <Route path="/schedule" element={<Schedule />} />
                 <Route path="/search" element={<Search />} />
                 <Route path="/genres" element={<Genres />} />
@@ -65,7 +65,6 @@ const App: React.FC = () => {
       duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
-      smoothTouch: true,
     });
 
     function raf(time: number) {

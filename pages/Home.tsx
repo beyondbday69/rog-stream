@@ -37,7 +37,7 @@ const HorizontalSection: React.FC<{ title: string; items: Anime[]; variant?: 'po
                 {/* Scroll Container */}
                 <div className="relative -mx-3 md:-mx-6 px-3 md:px-6">
                     <div className="flex overflow-x-auto gap-3 md:gap-5 pb-4 scrollbar-hide snap-x">
-                        {items.map((anime, idx) => (
+                        {items.map((anime: Anime, idx: number) => (
                             <div key={anime.id} className="snap-start">
                                 <AnimeCard anime={anime} variant={variant} rank={subtitle === 'Global Top 10' ? idx + 1 : undefined} layout="row" />
                             </div>
@@ -136,9 +136,9 @@ const ContinueWatchingSection: React.FC = () => {
                 <div className="relative -mx-3 md:-mx-6 px-3 md:px-6">
                     <div className="flex overflow-x-auto gap-3 md:gap-5 pb-4 scrollbar-hide snap-x">
                         {isLoadingProgress ? (
-                            [...Array(4)].map((_, i) => <ContinueWatchingCardSkeleton key={i} />)
+                            [...Array(4)].map((_: any, i: number) => <ContinueWatchingCardSkeleton key={i} />)
                         ) : (
-                            watching.map((item) => (
+                            watching.map((item: UserProgress) => (
                                 <ContinueWatchingCard key={item.animeId} progress={item} />
                             ))
                         )}
@@ -220,7 +220,7 @@ export const Home: React.FC = () => {
           return [];
       };
 
-      const promises = configList.map(async (cfg) => {
+      const promises = configList.map(async (cfg: { url: string, audioEnabled: boolean }) => {
           if (!cfg.url) return [];
           try {
               const res = await fetch(cfg.url);
@@ -281,13 +281,18 @@ export const Home: React.FC = () => {
   );
 
   // Combine custom slides (fetched externally) with API spotlight slides
-  const spotlight = [...customSlides, ...(data?.spotlight || data?.spotlightAnimes || [])];
+  const spotlight = [...customSlides, ...(data?.spotlight || data?.spotlightAnimes || data?.spotLightAnimes || [])];
   
   const trending = data?.trending || data?.trendingAnimes || [];
-  const topAiring = data?.topAiring || data?.topAiringAnimes || [];
+  const topAiring = data?.topAiring || data?.topAiringAnimes || data?.featuredAnimes?.topAiringAnimes || [];
   const topUpcoming = data?.topUpcoming || data?.topUpcomingAnimes || [];
-  const latestEpisode = data?.latestEpisode || data?.latestEpisodeAnimes || [];
+  const latestEpisode = data?.latestEpisode || data?.latestEpisodeAnimes || data?.latestEpisodes || [];
   const top10 = data?.top10?.week || data?.top10Animes?.week || [];
+
+  // New sections from featuredAnimes
+  const mostPopular = data?.featuredAnimes?.mostPopularAnimes || [];
+  const mostFavorite = data?.featuredAnimes?.mostFavoriteAnimes || [];
+  const latestCompleted = data?.featuredAnimes?.latestCompletedAnimes || [];
 
   return (
     <motion.div 
@@ -323,6 +328,14 @@ export const Home: React.FC = () => {
             link="/animes/trending"
         />
 
+        {/* Most Popular */}
+        <HorizontalSection 
+            title="Most Popular" 
+            subtitle="Fan Favorites"
+            items={mostPopular} 
+            link="/animes/most-popular"
+        />
+
         {/* Top 10 Ranking */}
         <HorizontalSection 
             title="Leaderboard" 
@@ -330,11 +343,27 @@ export const Home: React.FC = () => {
             items={top10} 
         />
 
+        {/* Most Favorite */}
+        <HorizontalSection 
+            title="Most Favorite" 
+            subtitle="Community Choice"
+            items={mostFavorite} 
+            link="/animes/most-favorite"
+        />
+
         {/* Top Airing */}
         <HorizontalSection 
             title="Top Airing" 
             items={topAiring} 
             link="/animes/top-airing"
+        />
+
+        {/* Latest Completed */}
+        <HorizontalSection 
+            title="Just Finished" 
+            subtitle="Completed Series"
+            items={latestCompleted} 
+            link="/animes/completed"
         />
 
         {/* Upcoming */}

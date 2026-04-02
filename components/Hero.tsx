@@ -71,9 +71,9 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
             videoEl.src = videoSlide.poster; // Full quality URL
             
             videoEl.oncanplaythrough = () => {
-                setDisplayItems(currentDisplayItems => {
+                setDisplayItems((currentDisplayItems: Anime[]) => {
                     // Avoid adding duplicates
-                    if (currentDisplayItems.some(item => item.id === videoSlide.id)) {
+                    if (currentDisplayItems.some((item: Anime) => item.id === videoSlide.id)) {
                         return currentDisplayItems;
                     }
                     const newItems = [...currentDisplayItems];
@@ -154,7 +154,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
   const current = displayItems[currentIndex];
 
   // Fallback if banner is missing, prioritize banner for 16:9
-  const heroImage = current.banner || current.image || current.poster;
+  const heroImage = current.banner || current.image || current.poster || current.img;
   const isVideo = current.posterType === 'video';
 
   return (
@@ -190,10 +190,11 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
                 ) : (
                     <img
                         src={heroImage}
-                        alt={current.title}
+                        alt={current.title || current.name}
                         className="w-full h-full object-cover object-center"
                     />
-                )}
+                )
+            }
                 
                  {/* Vignette / Gradients */}
                  
@@ -223,7 +224,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
                             className={`${getTitleSizeClasses(config.titleSize)} font-black leading-[0.9] uppercase tracking-tighter font-display mb-1 md:mb-2 line-clamp-2 drop-shadow-xl`}
                             style={{ color: config.titleColor }}
                         >
-                            {current.title}
+                            {current.title || current.name}
                         </h1>
                     </motion.div>
                 )}
@@ -278,7 +279,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
       
       {/* Navigation Indicators - Position Updated */}
       <div className="absolute right-4 bottom-12 md:right-6 md:bottom-16 z-40 flex flex-col gap-2">
-          {displayItems.map((item, idx) => (
+          {displayItems.map((item: Anime, idx: number) => (
               <button 
                   key={`${item.id}-${idx}`}
                   onClick={() => setCurrentIndex(idx)}

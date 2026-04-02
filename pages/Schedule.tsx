@@ -105,7 +105,7 @@ export const Schedule: React.FC = () => {
             </div>
         ) : schedule.length > 0 ? (
             <div className="space-y-0">
-                {schedule.map((item, idx) => (
+                {schedule.map((item: ScheduleItem, idx: number) => (
                     <ScheduleCard key={item.id} item={item} index={idx} isLast={idx === schedule.length - 1} />
                 ))}
             </div>

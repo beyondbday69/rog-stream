@@ -8,7 +8,9 @@ export interface ApiResponse<T> {
 export interface Anime {
   id: string;
   title: string;
+  name?: string; // Fallback for title
   poster: string;
+  img?: string; // Fallback for poster
   image?: string; // Add image as fallback for poster
   banner?: string;
   description?: string;
@@ -43,22 +45,30 @@ export interface HomeData {
   latestEpisode: Anime[];
   topUpcoming: Anime[];
   top10: {
-    today: Anime[];
+    day: Anime[];
     week: Anime[];
     month: Anime[];
   };
   topAiring: Anime[];
   // Keep legacy keys optional if API structure varies
   spotlightAnimes?: Anime[];
+  spotLightAnimes?: Anime[]; // Added to match API
   trendingAnimes?: Anime[];
   latestEpisodeAnimes?: Anime[];
+  latestEpisodes?: Anime[]; // Added to match API
   topUpcomingAnimes?: Anime[];
   top10Animes?: {
-    today: Anime[];
+    day: Anime[];
     week: Anime[];
     month: Anime[];
   };
   topAiringAnimes?: Anime[];
+  featuredAnimes?: {
+    topAiringAnimes: Anime[];
+    mostPopularAnimes: Anime[];
+    mostFavoriteAnimes: Anime[];
+    latestCompletedAnimes: Anime[];
+  };
 }
 
 export interface Episode {
@@ -95,6 +105,7 @@ export interface AnimeDetail {
   banner?: string;
   poster?: string; // Fallback
   malScore?: string;
+  moreInfo?: Record<string, string>;
 }
 
 export interface EpisodeList {

@@ -38,8 +38,8 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, rank, variant = 'po
           {/* Thumbnail Container */}
           <div className="relative aspect-video bg-dark-800 overflow-hidden rounded-sm border border-white/5 group-hover/card:border-brand-400/50 transition-all">
             <img
-              src={anime.banner || anime.image || anime.poster}
-              alt={anime.title}
+              src={anime.banner || anime.image || anime.poster || anime.img}
+              alt={anime.title || anime.name}
               className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
               loading="lazy"
             />
@@ -53,11 +53,11 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, rank, variant = 'po
                   <Play className="w-3 h-3 md:w-4 md:h-4 fill-white text-white group-hover/card:fill-black group-hover/card:text-black ml-0.5" />
                </div>
             </div>
-
+ 
             {/* Overlaid Text */}
             <div className="absolute bottom-2 left-2 right-12 md:bottom-3 md:left-3 md:right-20">
               <h4 className="text-[9px] md:text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-0.5 line-clamp-1">
-                  {anime.title}
+                  {anime.title || anime.name}
               </h4>
               <h3 className="text-xs md:text-sm font-bold text-white group-hover/card:text-brand-400 transition-colors line-clamp-1 leading-tight">
                   Episode {anime.episodes?.sub || anime.episodes?.eps || '1'}
@@ -87,8 +87,8 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, rank, variant = 'po
         <div className="relative aspect-[2/3] overflow-hidden bg-dark-800 mb-2 md:mb-3 transition-all duration-300 rounded-sm group-hover/card:shadow-[0_0_20px_rgba(246,195,67,0.1)]">
           
           <img
-            src={anime.poster || anime.image} 
-            alt={anime.title}
+            src={anime.poster || anime.image || anime.img} 
+            alt={anime.title || anime.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
             loading="lazy"
           />
@@ -113,8 +113,8 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, rank, variant = 'po
 
         {/* Text Content */}
         <div>
-          <h3 className="text-xs md:text-base font-bold text-zinc-200 group-hover/card:text-brand-400 transition-colors line-clamp-1 leading-tight" title={anime.title}>
-            {anime.title}
+          <h3 className="text-xs md:text-base font-bold text-zinc-200 group-hover/card:text-brand-400 transition-colors line-clamp-1 leading-tight" title={anime.title || anime.name}>
+            {anime.title || anime.name}
           </h3>
           <div className="flex items-center justify-between mt-1">
              <div className="flex items-center gap-1.5 md:gap-2 text-[9px] md:text-[11px] text-zinc-500 font-medium">

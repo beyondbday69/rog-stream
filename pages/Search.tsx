@@ -54,7 +54,7 @@ export const Search: React.FC = () => {
             <div className="mt-8">
                 <h2 className="text-zinc-500 font-bold mb-4 uppercase text-sm tracking-widest">Browse Categories</h2>
                 <div className="flex flex-wrap gap-3">
-                    {genres.map(genre => (
+                    {genres.map((genre: string) => (
                         <button 
                             key={genre}
                             onClick={() => navigate(`/animes/${genre.toLowerCase()}`)}
@@ -69,7 +69,7 @@ export const Search: React.FC = () => {
 
         {isLoading ? (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-6">
-             {[...Array(12)].map((_, i) => <AnimeCardSkeleton key={i} />)}
+             {[...Array(12)].map((_: any, i: number) => <AnimeCardSkeleton key={i} />)}
           </div>
         ) : (
           <motion.div
@@ -78,7 +78,7 @@ export const Search: React.FC = () => {
              transition={{ duration: 0.5 }}
           >
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-6">
-              {results.map((anime) => (
+              {results.map((anime: any) => (
                 <AnimeCard key={anime.id} anime={anime} layout="grid" />
               ))}
             </div>

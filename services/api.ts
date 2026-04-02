@@ -5,19 +5,20 @@ import { ApiResponse } from "../types";
 
 // Default Configuration
 export const DEFAULT_CONFIG = {
-  baseUrl: "https://newanimebackend.vercel.app",
+  baseUrl: "https://aniwatchapi-seven-teal.vercel.app/aniwatch",
   apiKey: "", // For Anime Backend
   geminiApiKey: "", // For Google Gemini AI
   endpoints: {
-    home: "https://backendweb-ivory.vercel.app/api/v1/home", // Updated to new hosting
-    search: "/anime/hianime/{keyword}", // New search structure
-    details: "/anime/hianime/info?id={id}", 
-    episodes: "/anime/episodes/{id}", 
-    schedule: "https://newanimebackend.vercel.app/anime/hianime/schedule", // Updated schedule endpoint
-    stream: "/anime/episode-srcs",
-    suggestion: "/anime/search/suggestion",
-    genres: "/anime/hianime/genres", // Fetch list of genres
-    genre: "/anime/hianime/genre/{id}" // Fetch specific genre data
+    home: "/", // Fetch home page data from base URL
+    search: "/search?keyword={q}&page={page}", // New search structure
+    details: "/anime/{id}", 
+    episodes: "/episodes/{id}", 
+    servers: "/servers?id={id}",
+    sources: "/episode-srcs?id={id}&server={server}&category={category}",
+    suggestion: "/search/suggest?keyword={q}", 
+    genres: "/genres", // Fetch list of genres
+    genre: "/genre/{id}", // Fetch specific genre data
+    schedule: "/schedule?date={date}", // Fetch schedule data
   }
 };
 
@@ -26,6 +27,13 @@ export const getConfig = () => {
     const stored = localStorage.getItem("api_config");
     if (stored) {
       const parsed = JSON.parse(stored);
+      
+      // Force update if old hianime endpoints are detected
+      if (parsed.endpoints && Object.values(parsed.endpoints).some((v: any) => typeof v === 'string' && v.includes('hianime'))) {
+        localStorage.removeItem("api_config");
+        return DEFAULT_CONFIG;
+      }
+
       return {
         ...DEFAULT_CONFIG,
         ...parsed,
@@ -45,41 +53,37 @@ export const constructUrl = (key: keyof typeof DEFAULT_CONFIG.endpoints, params:
   const config = getConfig();
   let path = config.endpoints[key] || DEFAULT_CONFIG.endpoints[key];
 
-  // Handle Search Query specifically ({q} or {keyword} placeholder)
-  if (key === 'search' || key === 'suggestion') {
-    const query = params.q || params.keyword || '';
-    if (path.includes('{q}')) {
-      path = path.replace('{q}', encodeURIComponent(query));
-    } else if (path.includes('{keyword}')) {
-      path = path.replace('{keyword}', encodeURIComponent(query));
-    } else {
-      // Default: append as query param
-      const separator = path.includes('?') ? '&' : '?';
-      path = `${path}${separator}keyword=${encodeURIComponent(query)}`;
+  // Create a copy of params to avoid mutating the original object
+  const queryParams = { ...params };
+
+  // 1. Handle Placeholders in path (e.g., {id}, {q}, {keyword}, {category})
+  Object.keys(queryParams).forEach(paramKey => {
+    const placeholder = `{${paramKey}}`;
+    if (path.includes(placeholder)) {
+      path = path.replace(placeholder, encodeURIComponent(String(queryParams[paramKey])));
+      // Remove from queryParams so it's not appended as query param later
+      delete queryParams[paramKey];
     }
-  }
-  
-  // Handle ID placeholder if present, otherwise append
-  if (params.id) {
-    if (path.includes('{id}')) {
-      path = path.replace('{id}', params.id);
-    } else {
-      // If path already has query params (like info?id=...), don't just append /id
-      if (path.includes('?')) {
-          // Check if it ends with = (incomplete param)
-          if(path.endsWith('=')) {
-              path = `${path}${params.id}`;
-          } 
-      } else {
-          path = `${path}/${params.id}`;
-      }
-    }
+  });
+
+  // 2. Special handling for search/suggestion if no placeholders were used
+  if ((key === 'search' || key === 'suggestion') && !path.includes('?')) {
+     const query = queryParams.q || queryParams.keyword || '';
+     if (query) {
+        path = `${path}?keyword=${encodeURIComponent(query)}`;
+        delete queryParams.q;
+        delete queryParams.keyword;
+     }
   }
 
-  // Handle Page
-  if (params.page) {
-    const separator = path.includes('?') ? '&' : '?';
-    path = `${path}${separator}page=${params.page}`;
+  // 3. Append remaining params as query parameters
+  const remainingKeys = Object.keys(queryParams).filter(k => queryParams[k] !== undefined && queryParams[k] !== null);
+  if (remainingKeys.length > 0) {
+    let separator = path.includes('?') ? '&' : '?';
+    remainingKeys.forEach(k => {
+      path = `${path}${separator}${k}=${encodeURIComponent(String(queryParams[k]))}`;
+      separator = '&';
+    });
   }
 
   return path;
@@ -111,10 +115,15 @@ export const fetchData = async <T>(url: string): Promise<ApiResponse<T>> => {
   const baseUrl = getApiBaseUrl().replace(/\/+$/, '');
   const endpoint = url.startsWith('/') ? url : `/${url}`;
   
+  // Use proxy for all requests to avoid CORS
+  const proxyUrl = `/api/proxy?url=${encodeURIComponent(`${baseUrl}${endpoint}`)}`;
+  
   try {
-    const { data } = await axios.get<ApiResponse<T>>(`${baseUrl}${endpoint}`, requestOptions);
+    console.log(`Fetching data via proxy: ${proxyUrl}`);
+    const { data } = await axios.get<ApiResponse<T>>(proxyUrl, requestOptions);
     return data;
   } catch (error) {
+    console.error(`Error fetching data via proxy: ${proxyUrl}`, error);
     if (axios.isAxiosError(error)) {
         throw new Error(error.response?.data?.message || error.message);
     }

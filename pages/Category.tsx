@@ -24,9 +24,9 @@ export const Category: React.FC = () => {
   if (category) {
       if (isStaticList) {
           // Normal lists
-          endpoint = `/animes/${category}?page=${page}`;
+          endpoint = `/${category}?page=${page}`;
       } else {
-          // Genre list using specific hianime endpoint: /anime/hianime/genre/{id}
+          // Genre list using specific hianime endpoint: /genre/{id}
           endpoint = constructUrl('genre', { id: category, page: page });
       }
   }
@@ -63,7 +63,7 @@ export const Category: React.FC = () => {
         ) : (
           <div>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-6">
-              {animes.map((anime) => (
+              {animes.map((anime: any) => (
                 <AnimeCard key={anime.id} anime={anime} layout="grid" />
               ))}
             </div>

@@ -36,6 +36,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const extractNumericId = (id: string) => {
       if (!id) return '';
+      if (id.includes('?ep=')) return id.split('?ep=')[1];
       if (id.includes('$episode$')) return id.split('$episode$')[1];
       const match = id.match(/-(\d+)$/);
       if (match) return match[1];

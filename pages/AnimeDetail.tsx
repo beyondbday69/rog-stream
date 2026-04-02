@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useApi, constructUrl } from '../services/api';
 import { AnimeDetail as AnimeDetailType } from '../types';
@@ -6,7 +6,7 @@ import { Play, Layers, AlertTriangle, ChevronDown, ChevronUp, Tv, Globe, Share2,
 import { DetailSkeleton } from '../components/Skeletons';
 import { AnimeCard } from '../components/AnimeCard';
 import { useAuth } from '../context/AuthContext';
-import { getUserProgress, UserProgress, addToWatchlist } from '../services/firebase';
+import { getUserProgress, UserProgress, addToWatchlist, removeUserProgress } from '../services/firebase';
 import { motion } from 'framer-motion';
 
 // Helper component for Section Headers to match the design
@@ -101,9 +101,39 @@ export const AnimeDetail: React.FC = () => {
   // Page Ready State (Blocks rendering until Rating is fetched)
   const [isRatingLoading, setIsRatingLoading] = useState(true);
 
-  const { data: anime, isLoading, isError } = useApi<AnimeDetailType>(
+  const { data: rawAnime, isLoading: isAnimeLoading, isError: isAnimeError } = useApi<any>(
       constructUrl('details', { id })
   );
+
+  const { data: rawEpisodes, isLoading: isEpisodesLoading, isError: isEpisodesError } = useApi<any>(
+      constructUrl('episodes', { id })
+  );
+
+  const isLoading = isAnimeLoading || isEpisodesLoading;
+  const isError = isAnimeError || isEpisodesError;
+
+  const anime = useMemo(() => rawAnime ? {
+      ...rawAnime,
+      id: rawAnime.anime?.info?.id || rawAnime.info?.id || rawAnime.id,
+      title: rawAnime.anime?.info?.name || rawAnime.info?.name || rawAnime.title,
+      image: rawAnime.anime?.info?.poster || rawAnime.anime?.info?.img || rawAnime.info?.img || rawAnime.image,
+      banner: rawAnime.anime?.info?.poster || rawAnime.anime?.info?.img || rawAnime.info?.img || rawAnime.banner || rawAnime.image,
+      description: rawAnime.anime?.info?.description || rawAnime.info?.description || rawAnime.description,
+      totalEpisodes: rawEpisodes?.totalEpisodes || rawAnime.anime?.info?.stats?.episodes?.eps || rawAnime.info?.episodes?.eps || rawAnime.totalEpisodes,
+      malID: rawAnime.anime?.info?.mal_id || rawAnime.info?.mal_id || rawAnime.malID,
+      malScore: rawAnime.anime?.moreInfo?.['MAL Score'] || rawAnime.moreInfo?.['MAL Score:'] || rawAnime.malScore,
+      genres: rawAnime.anime?.moreInfo?.Genres || rawAnime.moreInfo?.Genres || rawAnime.genres,
+      status: rawAnime.anime?.moreInfo?.Status || rawAnime.moreInfo?.['Status:'] || rawAnime.status,
+      relatedAnime: rawAnime.relatedAnimes || rawAnime.relatedAnime || [],
+      recommendations: rawAnime.recommendedAnimes || rawAnime.recommendations || [],
+      episodes: (rawEpisodes?.episodes || rawAnime.episodes || []).map((ep: any) => ({
+          ...ep,
+          id: ep.episodeId || ep.id,
+          number: ep.episodeNo || ep.number,
+          title: ep.name || ep.title,
+          isFiller: ep.filler || ep.isFiller
+      }))
+  } : null, [rawAnime, rawEpisodes]);
 
   useEffect(() => {
     const fetchProgress = async () => {
@@ -126,7 +156,6 @@ export const AnimeDetail: React.FC = () => {
     fetchProgress();
   }, [id, user]);
 
-  // Fetch MAL Data & Reviews with Fallback Search
   useEffect(() => {
     if (isLoading) return;
 
@@ -134,6 +163,8 @@ export const AnimeDetail: React.FC = () => {
         setIsRatingLoading(false);
         return;
     }
+    
+    let isMounted = true;
 
     const loadMalInfo = async () => {
         setIsRatingLoading(true);
@@ -146,7 +177,7 @@ export const AnimeDetail: React.FC = () => {
                 const searchRes = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(anime.title)}&limit=1`);
                 if (searchRes.ok) {
                     const searchData = await searchRes.json();
-                    if (searchData.data && searchData.data.length > 0) {
+                    if (isMounted && searchData.data && searchData.data.length > 0) {
                         effectiveMalId = searchData.data[0].mal_id;
                     }
                 }
@@ -155,13 +186,13 @@ export const AnimeDetail: React.FC = () => {
             }
         }
 
-        if (effectiveMalId) {
+        if (isMounted && effectiveMalId) {
             // Fetch stats and reviews
             try {
                 const statsRes = await fetch(`https://api.jikan.moe/v4/anime/${effectiveMalId}`);
                 if (statsRes.ok) {
                     const statsData = await statsRes.json();
-                    if (statsData.data) {
+                    if (isMounted && statsData.data) {
                         setMalData({
                             score: statsData.data.score,
                             scored_by: statsData.data.scored_by
@@ -176,21 +207,29 @@ export const AnimeDetail: React.FC = () => {
                 const reviewsRes = await fetch(`https://api.jikan.moe/v4/anime/${effectiveMalId}/reviews?sort=most_voted&limit=10`);
                 if (reviewsRes.ok) {
                     const reviewsData = await reviewsRes.json();
-                    setReviews(reviewsData.data || []);
+                    if (isMounted) {
+                        setReviews(reviewsData.data || []);
+                    }
                 }
             } catch (e) {
                 console.warn("Failed to fetch reviews", e);
             }
-        } else {
+        } else if (isMounted) {
             setMalData(null);
             setReviews([]);
         }
         
-        setIsRatingLoading(false);
+        if (isMounted) {
+            setIsRatingLoading(false);
+        }
     };
 
     loadMalInfo();
-  }, [anime, isLoading]);
+    
+    return () => {
+        isMounted = false;
+    };
+  }, [anime?.id, isLoading]);
   
   // Reset state on ID change
   useEffect(() => {
@@ -212,28 +251,33 @@ export const AnimeDetail: React.FC = () => {
     }
   };
 
-  const handleSave = async () => {
+  const handleWatchlistToggle = async () => {
     if (!user) {
-        alert("Please login to save to watchlist");
+        alert("Please login to manage your watchlist");
         return;
     }
-    if (userProgress || !anime) return; // Already saved
+    if (!anime) return;
 
     setIsSaving(true);
     try {
-        await addToWatchlist(user.uid, anime);
-        // Optimistically update local state
-        setUserProgress({
-             animeId: anime.id,
-             title: anime.title,
-             poster: anime.poster || anime.image,
-             currentEpisode: 0,
-             totalEpisodes: anime.totalEpisodes || anime.episodes?.length || 0,
-             status: 'On Hold',
-             lastUpdated: Date.now()
-        });
+        if (userProgress) {
+            await removeUserProgress(user.uid, anime.id);
+            setUserProgress(null);
+        } else {
+            await addToWatchlist(user.uid, anime);
+            // Optimistically update local state
+            setUserProgress({
+                 animeId: anime.id,
+                 title: anime.title,
+                 poster: anime.poster || anime.image,
+                 currentEpisode: 0,
+                 totalEpisodes: anime.totalEpisodes || anime.episodes?.length || 0,
+                 status: 'On Hold',
+                 lastUpdated: Date.now()
+            });
+        }
     } catch (e) {
-        console.error("Failed to add to watchlist", e);
+        console.error("Failed to update watchlist", e);
     } finally {
         setIsSaving(false);
     }
@@ -264,12 +308,12 @@ export const AnimeDetail: React.FC = () => {
 
   // Determine the next episode to watch for the "Continue" button and highlighting
   const nextEpisodeToWatch = lastWatchedEpNumber 
-    ? episodes.find(e => e.number === lastWatchedEpNumber + 1) || episodes.find(e => e.number === lastWatchedEpNumber)
+    ? episodes.find((e: any) => e.number === lastWatchedEpNumber + 1) || episodes.find((e: any) => e.number === lastWatchedEpNumber)
     : episodes[0];
   
   const watchLink = nextEpisodeToWatch
-    ? `/watch/${encodeURIComponent(nextEpisodeToWatch.id)}` 
-    : (episodes.length > 0 ? `/watch/${encodeURIComponent(episodes[0].id)}` : '#');
+    ? `/watch/${id}/${nextEpisodeToWatch.number}` 
+    : (episodes.length > 0 ? `/watch/${id}/${episodes[0].number}` : '#');
   
   const displayScore = malData?.score || anime.malScore;
   
@@ -348,14 +392,14 @@ export const AnimeDetail: React.FC = () => {
                             {copied ? <Check className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4" />}
                         </button>
                         <button 
-                            onClick={handleSave}
-                            disabled={!!userProgress || isSaving}
+                            onClick={handleWatchlistToggle}
+                            disabled={isSaving}
                             className={`p-2 rounded-full transition-all border border-white/5 ${
                                 userProgress 
-                                    ? 'bg-brand-400 text-black border-brand-400 cursor-default shadow-[0_0_10px_rgba(255,0,51,0.5)]' 
+                                    ? 'bg-brand-400 text-black border-brand-400 shadow-[0_0_10px_rgba(255,0,51,0.5)]' 
                                     : 'bg-dark-800 hover:bg-brand-400 hover:text-black text-zinc-400'
                             }`} 
-                            title={userProgress ? "Saved to Library" : "Add to Library"}
+                            title={userProgress ? "Remove from Library" : "Add to Library"}
                         >
                             {isSaving ? (
                                 <LoaderCircle className="w-4 h-4 animate-spin" />
@@ -375,25 +419,59 @@ export const AnimeDetail: React.FC = () => {
         <div className="space-y-8 md:space-y-12">
             <section>
                 <SectionHeader title="Description" />
-                <div className="relative text-zinc-300 leading-relaxed font-sans text-sm md:text-base">
-                    <p className={`${!showFullDesc && 'line-clamp-4'}`}>
-                        {anime.description}
-                    </p>
-                    {anime.description?.length > 300 && (
-                        <button 
-                            onClick={() => setShowFullDesc(!showFullDesc)}
-                            className="text-brand-400 font-bold text-xs mt-4 flex items-center gap-1 hover:text-white transition-colors uppercase tracking-widest"
-                        >
-                            {showFullDesc ? <>Collapse Data <ChevronUp className="w-3 h-3"/></> : <>Expand Data <ChevronDown className="w-3 h-3"/></>}
-                        </button>
-                    )}
-                </div>
-                <div className="flex flex-wrap gap-2 mt-4 md:mt-6">
-                    {anime.genres?.map((g: string) => (
-                        <Link key={g} to={`/animes/${g.toLowerCase()}`} className="px-2 py-1 md:px-3 border border-dark-700 bg-dark-800 text-[10px] md:text-xs font-bold uppercase tracking-wider hover:bg-brand-400 hover:text-black hover:border-brand-400 transition-all text-zinc-400">
-                            {g}
-                        </Link>
-                    ))}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
+                    <div className="lg:col-span-2 space-y-6">
+                        <div className="relative text-zinc-300 leading-relaxed font-sans text-sm md:text-base">
+                            <p className={`${!showFullDesc && 'line-clamp-4'}`}>
+                                {anime.description}
+                            </p>
+                            {anime.description?.length > 300 && (
+                                <button 
+                                    onClick={() => setShowFullDesc(!showFullDesc)}
+                                    className="text-brand-400 font-bold text-xs mt-4 flex items-center gap-1 hover:text-white transition-colors uppercase tracking-widest"
+                                >
+                                    {showFullDesc ? <>Collapse Data <ChevronUp className="w-3 h-3"/></> : <>Expand Data <ChevronDown className="w-3 h-3"/></>}
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {anime.genres?.map((g: string) => (
+                                <Link key={g} to={`/animes/${g.toLowerCase()}`} className="px-2 py-1 md:px-3 border border-dark-700 bg-dark-800 text-[10px] md:text-xs font-bold uppercase tracking-wider hover:bg-brand-400 hover:text-black hover:border-brand-400 transition-all text-zinc-400">
+                                    {g}
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* More Info Sidebar */}
+                    <div className="bg-dark-800/50 border border-white/5 p-6 rounded-sm space-y-4">
+                        <h3 className="text-white font-black uppercase text-sm tracking-widest border-b border-white/10 pb-2">More Info</h3>
+                        <div className="space-y-3">
+                            {anime.moreInfo && Object.entries(anime.moreInfo).map(([key, value]) => (
+                                <div key={key} className="flex flex-col">
+                                    <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">{key}</span>
+                                    <span className="text-xs text-zinc-300 font-medium">{value as string}</span>
+                                </div>
+                            ))}
+                            {/* Fallback if moreInfo is empty but we have some fields */}
+                            {!anime.moreInfo && (
+                                <>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Status</span>
+                                        <span className="text-xs text-zinc-300 font-medium">{anime.status || 'Unknown'}</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Type</span>
+                                        <span className="text-xs text-zinc-300 font-medium">{anime.type || 'Unknown'}</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Season</span>
+                                        <span className="text-xs text-zinc-300 font-medium">{anime.season || 'Unknown'}</span>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -412,14 +490,14 @@ export const AnimeDetail: React.FC = () => {
                 {episodes.length > 0 ? (
                     <div className="max-h-[600px] overflow-y-auto pr-2 -mr-2 scrollbar-thin scrollbar-thumb-dark-700 scrollbar-track-dark-800/50 bg-dark-900 border border-dark-700">
                         <div className="flex flex-col divide-y divide-dark-700">
-                            {episodes.map((ep) => {
+                            {episodes.map((ep: any) => {
                                 const isWatched = lastWatchedEpNumber ? ep.number <= lastWatchedEpNumber : false;
                                 const isNextUp = nextEpisodeToWatch ? ep.id === nextEpisodeToWatch.id : false;
 
                                 return (
                                     <Link 
                                         key={ep.id}
-                                        to={`/watch/${encodeURIComponent(ep.id)}`}
+                                        to={`/watch/${id}/${ep.number}`}
                                         className={`group flex items-center gap-3 md:gap-4 p-3 md:p-4 transition-all duration-200 ${
                                             isNextUp 
                                                 ? 'bg-brand-400/10 border-l-4 border-brand-400' 

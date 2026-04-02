@@ -226,7 +226,7 @@ export const Profile: React.FC = () => {
                                 <EmptyState message="No ongoing anime." action={() => navigate('/')} actionText="Start Watching" />
                             ) : (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
-                                    {watchingList.map((p) => (
+                                    {watchingList.map((p: UserProgress) => (
                                         <ProfileAnimeCard key={p.animeId} progress={p} onDelete={handleDelete} />
                                     ))}
                                 </div>
@@ -245,7 +245,7 @@ export const Profile: React.FC = () => {
                                 <EmptyState message="Watchlist is empty." action={() => navigate('/')} actionText="Browse Anime" />
                             ) : (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
-                                    {savedList.map((p) => (
+                                    {savedList.map((p: UserProgress) => (
                                         <ProfileAnimeCard key={p.animeId} progress={p} onDelete={handleDelete} />
                                     ))}
                                 </div>
@@ -267,7 +267,7 @@ export const Profile: React.FC = () => {
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
-                                    {completedList.map((p) => (
+                                    {completedList.map((p: UserProgress) => (
                                         <ProfileAnimeCard key={p.animeId} progress={p} onDelete={handleDelete} />
                                     ))}
                                 </div>

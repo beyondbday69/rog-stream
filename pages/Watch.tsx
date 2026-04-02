@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useApi, constructUrl } from '../services/api';
-import { AnimeDetail, Episode, HistoryItem } from '../types';
+import { AnimeDetail, Episode, HistoryItem, Anime } from '../types';
 import { LoaderCircle, AlertTriangle, ChevronLeft, Play, X, Grid2X2, List, Search, LayoutTemplate } from 'lucide-react';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { AnimeCard } from '../components/AnimeCard';
@@ -10,37 +10,56 @@ import { saveUserHistory, saveAnimeProgress } from '../services/firebase';
 import { motion } from 'framer-motion';
 
 export const Watch: React.FC = () => {
-  const { episodeId } = useParams<{ episodeId: string }>();
+  const { animeId, episodeNumber } = useParams<{ animeId: string, episodeNumber: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [epSearch, setEpSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   
-  // FIXED: Correctly derive Anime ID from Episode ID string
-  const deriveAnimeId = (epId: string) => {
-    if (!epId) return '';
-    if (epId.includes('?ep=')) return epId.split('?ep=')[0];
-    if (epId.includes('$episode$')) return epId.split('$episode$')[0]; // Take the LEFT part (Anime ID)
-    if (epId.includes('::')) return epId.split('::')[0];
-    return epId.replace(/-episode-\d+$/, '');
-  };
-
-  const animeId = episodeId ? deriveAnimeId(episodeId) : '';
-
-  const { data: animeData, isLoading, error } = useApi<AnimeDetail>(
+  const { data: rawAnime, isLoading: isAnimeLoading, error: animeError } = useApi<any>(
       animeId ? constructUrl('details', { id: animeId }) : ''
   );
 
+  const { data: rawEpisodes, isLoading: isEpisodesLoading, error: episodesError } = useApi<any>(
+      animeId ? constructUrl('episodes', { id: animeId }) : ''
+  );
+
+  const isLoading = isAnimeLoading || isEpisodesLoading;
+  const error = animeError || episodesError;
+
+  const animeData = rawAnime ? {
+      ...rawAnime,
+      id: rawAnime.anime?.info?.id || rawAnime.info?.id || rawAnime.id,
+      title: rawAnime.anime?.info?.name || rawAnime.info?.name || rawAnime.title,
+      image: rawAnime.anime?.info?.poster || rawAnime.anime?.info?.img || rawAnime.info?.img || rawAnime.image,
+      banner: rawAnime.anime?.info?.poster || rawAnime.anime?.info?.img || rawAnime.info?.img || rawAnime.banner || rawAnime.image,
+      description: rawAnime.anime?.info?.description || rawAnime.info?.description || rawAnime.description,
+      totalEpisodes: rawEpisodes?.totalEpisodes || rawAnime.anime?.info?.stats?.episodes?.eps || rawAnime.info?.episodes?.eps || rawAnime.totalEpisodes,
+      malID: rawAnime.anime?.info?.mal_id || rawAnime.info?.mal_id || rawAnime.malID,
+      malScore: rawAnime.anime?.moreInfo?.['MAL Score'] || rawAnime.moreInfo?.['MAL Score:'] || rawAnime.malScore,
+      genres: rawAnime.anime?.moreInfo?.Genres || rawAnime.moreInfo?.Genres || rawAnime.genres,
+      status: rawAnime.anime?.moreInfo?.Status || rawAnime.moreInfo?.['Status:'] || rawAnime.status,
+      relatedAnime: rawAnime.relatedAnimes || rawAnime.relatedAnime || [],
+      recommendations: rawAnime.recommendedAnimes || rawAnime.recommendations || [],
+      episodes: (rawEpisodes?.episodes || rawAnime.episodes || []).map((ep: any) => ({
+          ...ep,
+          id: ep.episodeId || ep.id,
+          number: ep.episodeNo || ep.number,
+          title: ep.name || ep.title,
+          isFiller: ep.filler || ep.isFiller
+      }))
+  } : null;
+
   useEffect(() => {
     const saveProgress = async () => {
-        if (animeData && episodeId && user) {
+        if (animeData && episodeNumber && user) {
             const episodes = animeData.episodes || [];
-            const currentEp = episodes.find(e => e.id === episodeId);
+            const currentEp = episodes.find((e: Episode) => e.number.toString() === episodeNumber);
             
             if (currentEp) {
                 const historyItem: HistoryItem = {
-                    animeId: animeId,
-                    episodeId: episodeId,
+                    animeId: animeId || '',
+                    episodeId: currentEp.id,
                     title: animeData.title,
                     episodeNumber: currentEp.number,
                     image: animeData.banner || animeData.image || animeData.poster || '',
@@ -57,12 +76,12 @@ export const Watch: React.FC = () => {
         }
     };
     saveProgress();
-  }, [animeData, episodeId, animeId, user]);
+  }, [animeData, episodeNumber, animeId, user]);
   
   // Scroll to top on new episode
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [episodeId]);
+  }, [episodeNumber]);
 
 
   if (isLoading) {
@@ -94,7 +113,7 @@ export const Watch: React.FC = () => {
   }
 
   const episodes = animeData.episodes || [];
-  const currentEpIndex = episodes.findIndex(e => e.id === episodeId);
+  const currentEpIndex = episodes.findIndex((e: Episode) => e.number.toString() === episodeNumber);
   const currentEp = episodes[currentEpIndex];
   
   const prevEp = episodes[currentEpIndex - 1];
@@ -102,13 +121,13 @@ export const Watch: React.FC = () => {
 
   const handleNavigate = (direction: 'prev' | 'next') => {
       if (direction === 'prev' && prevEp) {
-          navigate(`/watch/${encodeURIComponent(prevEp.id)}`);
+          navigate(`/watch/${animeId}/${prevEp.number}`);
       } else if (direction === 'next' && nextEp) {
-          navigate(`/watch/${encodeURIComponent(nextEp.id)}`);
+          navigate(`/watch/${animeId}/${nextEp.number}`);
       }
   };
 
-  const filteredEpisodes = episodes.filter(ep => 
+  const filteredEpisodes = episodes.filter((ep: Episode) => 
       ep.number.toString().includes(epSearch) || 
       (ep.title && ep.title.toLowerCase().includes(epSearch.toLowerCase()))
   );
@@ -165,7 +184,7 @@ export const Watch: React.FC = () => {
                 {/* Left Column: Video Player */}
                 <div className="flex-1 min-w-0">
                     <VideoPlayer 
-                        episodeId={episodeId || ''}
+                        episodeId={currentEp.id}
                         currentEp={currentEp}
                         changeEpisode={handleNavigate}
                         hasPrevEp={!!prevEp}
@@ -225,12 +244,12 @@ export const Watch: React.FC = () => {
                                 viewMode === 'list' ? (
                                     // List View
                                     <div className="space-y-1">
-                                        {filteredEpisodes.map(ep => {
-                                            const isActive = ep.id === episodeId;
+                                        {filteredEpisodes.map((ep: Episode) => {
+                                            const isActive = ep.number.toString() === episodeNumber;
                                             return (
                                                 <Link 
                                                     key={ep.id}
-                                                    to={`/watch/${encodeURIComponent(ep.id)}`}
+                                                    to={`/watch/${animeId}/${ep.number}`}
                                                     className={`flex items-center gap-3 p-2 md:p-3 rounded-sm group transition-all duration-200 border-l-2 ${
                                                         isActive 
                                                         ? 'bg-brand-400/10 border-brand-400' 
@@ -263,12 +282,12 @@ export const Watch: React.FC = () => {
                                 ) : (
                                     // Grid View
                                     <div className="grid grid-cols-5 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                                        {filteredEpisodes.map(ep => {
-                                            const isActive = ep.id === episodeId;
+                                        {filteredEpisodes.map((ep: Episode) => {
+                                            const isActive = ep.number.toString() === episodeNumber;
                                             return (
                                                 <Link 
                                                     key={ep.id}
-                                                    to={`/watch/${encodeURIComponent(ep.id)}`}
+                                                    to={`/watch/${animeId}/${ep.number}`}
                                                     className={`aspect-square flex flex-col items-center justify-center rounded-sm border transition-all duration-200 ${
                                                         isActive 
                                                         ? 'bg-brand-400 text-black border-brand-400 font-bold' 
@@ -300,7 +319,7 @@ export const Watch: React.FC = () => {
                         Recommended <span className="text-brand-400">Data</span>
                     </h2>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-                        {recommendations.slice(0, 10).map(rel => (
+                        {recommendations.slice(0, 10).map((rel: Anime) => (
                             <AnimeCard key={rel.id} anime={rel} layout="grid" />
                         ))}
                     </div>
