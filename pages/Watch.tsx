@@ -15,7 +15,8 @@ export const Watch: React.FC = () => {
   const { user } = useAuth();
   const [epSearch, setEpSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  
+  const [duration, setDuration] = useState<number | null>(null);
+
   const { data: rawAnime, isLoading: isAnimeLoading, error: animeError } = useApi<any>(
       animeId ? constructUrl('details', { id: animeId }) : ''
   );
@@ -49,6 +50,23 @@ export const Watch: React.FC = () => {
           isFiller: ep.filler || ep.isFiller
       }))
   } : null;
+
+  useEffect(() => {
+    if (animeData && animeData.malID) {
+        fetch(`https://api.jikan.moe/v4/anime/${animeData.malID}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.data && data.data.duration) {
+                    // Duration is usually "24 min per ep"
+                    const match = data.data.duration.match(/(\d+)/);
+                    if (match) {
+                        setDuration(parseInt(match[1]) * 60 * 1000);
+                    }
+                }
+            })
+            .catch(err => console.error("Failed to fetch duration", err));
+    }
+  }, [animeData]);
 
   useEffect(() => {
     const saveProgress = async () => {
@@ -126,6 +144,15 @@ export const Watch: React.FC = () => {
           navigate(`/watch/${animeId}/${nextEp.number}`);
       }
   };
+
+  useEffect(() => {
+    if (duration && nextEp) {
+        const timer = setTimeout(() => {
+            handleNavigate('next');
+        }, duration - 5000); // Trigger 5 seconds before end
+        return () => clearTimeout(timer);
+    }
+  }, [duration, nextEp, episodeNumber]);
 
   const filteredEpisodes = episodes.filter((ep: Episode) => 
       ep.number.toString().includes(epSearch) || 

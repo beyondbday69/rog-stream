@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useApi, constructUrl } from '../services/api';
 import { AnimeDetail as AnimeDetailType } from '../types';
-import { Play, Layers, AlertTriangle, ChevronDown, ChevronUp, Tv, Globe, Share2, BookmarkPlus, Check, CheckCircle, LoaderCircle, Star, Users, MessageSquareQuote } from 'lucide-react';
+import { Play, Layers, AlertTriangle, ChevronDown, ChevronUp, Tv, Globe, Share2, BookmarkPlus, Check, CheckCircle, LoaderCircle, Star, Users, MessageSquareQuote, ArrowLeft } from 'lucide-react';
 import { DetailSkeleton } from '../components/Skeletons';
 import { AnimeCard } from '../components/AnimeCard';
 import { useAuth } from '../context/AuthContext';
@@ -86,6 +86,7 @@ const ReviewCard: React.FC<{ review: any }> = ({ review }) => {
 
 export const AnimeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [showFullDesc, setShowFullDesc] = useState(false);
   const { user } = useAuth();
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
@@ -116,16 +117,19 @@ export const AnimeDetail: React.FC = () => {
       ...rawAnime,
       id: rawAnime.anime?.info?.id || rawAnime.info?.id || rawAnime.id,
       title: rawAnime.anime?.info?.name || rawAnime.info?.name || rawAnime.title,
-      image: rawAnime.anime?.info?.poster || rawAnime.anime?.info?.img || rawAnime.info?.img || rawAnime.image,
-      banner: rawAnime.anime?.info?.poster || rawAnime.anime?.info?.img || rawAnime.info?.img || rawAnime.banner || rawAnime.image,
+      image: rawAnime.poster || rawAnime.anime?.info?.poster || rawAnime.anime?.info?.img || rawAnime.info?.img || rawAnime.image,
+      banner: rawAnime.banner || rawAnime.poster || rawAnime.anime?.info?.poster || rawAnime.anime?.info?.img || rawAnime.info?.img || rawAnime.image,
       description: rawAnime.anime?.info?.description || rawAnime.info?.description || rawAnime.description,
       totalEpisodes: rawEpisodes?.totalEpisodes || rawAnime.anime?.info?.stats?.episodes?.eps || rawAnime.info?.episodes?.eps || rawAnime.totalEpisodes,
       malID: rawAnime.anime?.info?.mal_id || rawAnime.info?.mal_id || rawAnime.malID,
       malScore: rawAnime.anime?.moreInfo?.['MAL Score'] || rawAnime.moreInfo?.['MAL Score:'] || rawAnime.malScore,
       genres: rawAnime.anime?.moreInfo?.Genres || rawAnime.moreInfo?.Genres || rawAnime.genres,
       status: rawAnime.anime?.moreInfo?.Status || rawAnime.moreInfo?.['Status:'] || rawAnime.status,
+      hasSub: rawAnime.anime?.info?.stats?.episodes?.sub > 0 || rawAnime.info?.episodes?.sub > 0 || rawAnime.hasSub || !rawAnime.isDub,
+      hasDub: rawAnime.anime?.info?.stats?.episodes?.dub > 0 || rawAnime.info?.episodes?.dub > 0 || rawAnime.hasDub || rawAnime.isDub,
       relatedAnime: rawAnime.relatedAnimes || rawAnime.relatedAnime || [],
       recommendations: rawAnime.recommendedAnimes || rawAnime.recommendations || [],
+      seasons: rawAnime.seasons || [],
       episodes: (rawEpisodes?.episodes || rawAnime.episodes || []).map((ep: any) => ({
           ...ep,
           id: ep.episodeId || ep.id,
@@ -327,6 +331,12 @@ export const AnimeDetail: React.FC = () => {
       
       {/* Header Section */}
       <div className="relative w-full h-[40vh] min-h-[300px] md:h-[60vh] md:min-h-[500px] bg-dark-950 overflow-hidden">
+        <button 
+            onClick={() => navigate(-1)}
+            className="absolute top-4 left-4 z-50 p-2 bg-dark-900/50 backdrop-blur-sm rounded-full text-white hover:bg-brand-400/50 transition-colors"
+        >
+            <ArrowLeft className="w-6 h-6" />
+        </button>
         <div className="absolute inset-0">
              <img 
                 src={heroImage} 
@@ -380,7 +390,17 @@ export const AnimeDetail: React.FC = () => {
                     )}
                     {anime.type && <div className="flex items-center gap-1.5"><Tv className="w-3 h-3 md:w-4 md:h-4 text-brand-400" /><span>{anime.type}</span></div>}
                     {anime.totalEpisodes && <div className="flex items-center gap-1.5"><Layers className="w-3 h-3 md:w-4 md:h-4 text-brand-400" /><span>{anime.totalEpisodes} EPS</span></div>}
-                    <div className="flex items-center gap-1.5"><Globe className="w-3 h-3 md:w-4 md:h-4 text-brand-400" /><span>{anime.hasSub && 'SUB'}{anime.hasSub && anime.hasDub && ' | '}{anime.hasDub && 'DUB'}</span></div>
+                    
+                    {/* Simplified Languages Display */}
+                    {(anime.hasSub || anime.hasDub) && (
+                        <div className="flex items-center gap-1.5">
+                            <Globe className="w-3 h-3 md:w-4 md:h-4 text-brand-400" />
+                            <div className="flex items-center gap-1">
+                                {anime.hasSub && <span className="px-1.5 py-0.5 bg-white/10 rounded-sm text-[9px] md:text-[10px] font-bold">SUB</span>}
+                                {anime.hasDub && <span className="px-1.5 py-0.5 bg-white/10 rounded-sm text-[9px] md:text-[10px] font-bold">DUB</span>}
+                            </div>
+                        </div>
+                    )}
                     
                     {/* Action Buttons */}
                     <div className="flex items-center gap-3 ml-auto">
@@ -476,7 +496,7 @@ export const AnimeDetail: React.FC = () => {
             </section>
 
             <section>
-                <SectionHeader title="Episode" meta={`${episodes.length} FILES`}>
+                <SectionHeader title="Episodes" meta={episodes.length > 0 ? `${episodes.length} FILES` : undefined}>
                     {episodes.length > 0 && user && nextEpisodeToWatch && (
                         <Link to={watchLink} className="flex items-center gap-2 px-4 py-2 md:px-6 bg-brand-400 hover:bg-white text-black font-black uppercase text-xs tracking-widest transition-all skew-x-[-12deg] shadow-[0_0_15px_rgba(255,0,51,0.3)]">
                             <Play className="w-3 h-3 md:w-4 md:h-4 fill-black skew-x-[12deg]"/>
@@ -487,50 +507,45 @@ export const AnimeDetail: React.FC = () => {
                     )}
                 </SectionHeader>
 
-                {episodes.length > 0 ? (
-                    <div className="max-h-[600px] overflow-y-auto pr-2 -mr-2 scrollbar-thin scrollbar-thumb-dark-700 scrollbar-track-dark-800/50 bg-dark-900 border border-dark-700">
-                        <div className="flex flex-col divide-y divide-dark-700">
-                            {episodes.map((ep: any) => {
-                                const isWatched = lastWatchedEpNumber ? ep.number <= lastWatchedEpNumber : false;
-                                const isNextUp = nextEpisodeToWatch ? ep.id === nextEpisodeToWatch.id : false;
+                {/* Render Episodes directly */}
+                <div className="max-h-[600px] overflow-y-auto pr-2 -mr-2 scrollbar-thin scrollbar-thumb-dark-700 scrollbar-track-dark-800/50 bg-dark-900 border border-dark-700">
+                    <div className="flex flex-col divide-y divide-dark-700">
+                        {anime.seasons?.flatMap((s: any) => s.episodes || []).concat(episodes).filter((v: any, i: number, a: any[]) => a.findIndex((t: any) => t.id === v.id) === i).map((ep: any) => {
+                            const isWatched = lastWatchedEpNumber ? ep.number <= lastWatchedEpNumber : false;
+                            const isNextUp = nextEpisodeToWatch ? ep.id === nextEpisodeToWatch.id : false;
 
-                                return (
-                                    <Link 
-                                        key={ep.id}
-                                        to={`/watch/${id}/${ep.number}`}
-                                        className={`group flex items-center gap-3 md:gap-4 p-3 md:p-4 transition-all duration-200 ${
-                                            isNextUp 
-                                                ? 'bg-brand-400/10 border-l-4 border-brand-400' 
-                                                : 'border-l-4 border-transparent hover:bg-dark-800'
-                                        } ${isWatched && !isNextUp ? 'opacity-60 hover:opacity-100' : ''}`}
-                                    >
-                                        <span className={`text-lg md:text-xl font-black font-mono transition-colors w-6 md:w-8 text-center ${
-                                            isNextUp ? 'text-brand-400' : 'text-zinc-600 group-hover:text-zinc-400'
+                            return (
+                                <Link 
+                                    key={ep.id}
+                                    to={`/watch/${id}/${ep.number}`}
+                                    className={`group flex items-center gap-3 md:gap-4 p-3 md:p-4 transition-all duration-200 ${
+                                        isNextUp 
+                                            ? 'bg-brand-400/10 border-l-4 border-brand-400' 
+                                            : 'border-l-4 border-transparent hover:bg-dark-800'
+                                    } ${isWatched && !isNextUp ? 'opacity-60 hover:opacity-100' : ''}`}
+                                >
+                                    <span className={`text-lg md:text-xl font-black font-mono transition-colors w-6 md:w-8 text-center ${
+                                        isNextUp ? 'text-brand-400' : 'text-zinc-600 group-hover:text-zinc-400'
+                                    }`}>
+                                        {ep.number}
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`font-bold text-xs md:text-sm line-clamp-1 transition-colors ${
+                                            isNextUp ? 'text-white' : 'text-zinc-300 group-hover:text-white'
                                         }`}>
-                                            {ep.number}
+                                            {ep.title || `Episode ${ep.number}`}
+                                        </p>
+                                    </div>
+                                    {ep.isFiller && (
+                                        <span className="text-[9px] bg-red-900/50 text-red-400 px-2 py-0.5 font-bold uppercase rounded-sm flex-shrink-0">
+                                            Filler
                                         </span>
-                                        <div className="flex-1 min-w-0">
-                                            <p className={`font-bold text-xs md:text-sm line-clamp-1 transition-colors ${
-                                                isNextUp ? 'text-white' : 'text-zinc-300 group-hover:text-white'
-                                            }`}>
-                                                {ep.title || `Episode ${ep.number}`}
-                                            </p>
-                                        </div>
-                                        {ep.isFiller && (
-                                            <span className="text-[9px] bg-red-900/50 text-red-400 px-2 py-0.5 font-bold uppercase rounded-sm flex-shrink-0">
-                                                Filler
-                                            </span>
-                                        )}
-                                    </Link>
-                                );
-                            })}
-                        </div>
+                                    )}
+                                </Link>
+                            );
+                        })}
                     </div>
-                ) : (
-                    <div className="p-12 bg-dark-800/50 text-center border border-dark-600">
-                        <p className="text-zinc-500 font-mono text-sm">NO EPISODE DATA AVAILABLE</p>
-                    </div>
-                )}
+                </div>
             </section>
             
             {/* Reviews Section */}

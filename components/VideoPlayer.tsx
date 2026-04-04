@@ -24,6 +24,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [server, setServer] = useState<'vidWish' | 'megaPlay'>(() => {
     return (localStorage.getItem('video_server') as 'vidWish' | 'megaPlay') || 'megaPlay';
   });
+  const [isSkipping, setIsSkipping] = useState(false);
   
   // Save settings to localStorage whenever they change
   useEffect(() => {
@@ -33,6 +34,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   useEffect(() => {
     localStorage.setItem('video_server', server);
   }, [server]);
+
+  const handleSkipToNext = () => {
+    if (hasNextEp) {
+      setIsSkipping(true);
+      setTimeout(() => {
+        changeEpisode('next');
+        setIsSkipping(false);
+      }, 5000);
+    }
+  };
 
   const extractNumericId = (id: string) => {
       if (!id) return '';
@@ -95,6 +106,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
              <div className="flex gap-2">
                 <button onClick={() => changeEpisode("prev")} disabled={!hasPrevEp} className="group px-3 py-2 bg-dark-800 border border-dark-600 text-zinc-400 hover:text-white hover:border-brand-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all -skew-x-12" title="Previous Episode"><ChevronLeft className="w-4 h-4 md:w-5 md:h-5 skew-x-12" /></button>
                 <button onClick={() => changeEpisode("next")} disabled={!hasNextEp} className="group px-3 py-2 bg-dark-800 border border-dark-600 text-zinc-400 hover:text-white hover:border-brand-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all -skew-x-12" title="Next Episode"><ChevronRight className="w-4 h-4 md:w-5 md:h-5 skew-x-12" /></button>
+                {hasNextEp && (
+                  <button 
+                    onClick={handleSkipToNext} 
+                    disabled={isSkipping}
+                    className="group px-3 py-2 bg-red-900/20 border border-red-700 text-red-400 hover:text-white hover:border-red-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all -skew-x-12" 
+                    title="Skip to Next Episode on Error"
+                  >
+                    <span className="skew-x-12 text-[10px] uppercase font-bold">{isSkipping ? "Skipping..." : "Error? Skip"}</span>
+                  </button>
+                )}
              </div>
           </div>
         </div>

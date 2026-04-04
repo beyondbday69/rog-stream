@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HLS Proxy Player Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #111;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        video {
+            width: 100%;
+            max-width: 800px;
+            background: #000;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .controls {
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #333;
+            background: #222;
+            color: white;
+        }
+        button {
+            padding: 10px 20px;
+            background: #ff0033;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #cc0029;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>HLS Proxy Player Test</h2>
+    
+    <div class="controls">
+        <input type="text" id="urlInput" value="https://af04.anvod.pro/media/a9tv/2d6/678d23835f30d5dfd6cad6d2/anixl-master.m3u8" placeholder="Enter original m3u8 URL">
+        <button onclick="loadVideo()">Play</button>
+    </div>
+
+    <video id="video" controls></video>
+
+    <script>
+        const PROXY_BASE = 'https://hindiapi-green.vercel.app/api/v1/animelok/proxy?url=';
+        let hls = null;
+
+        function rewriteM3u8(m3u8Text, baseUrl) {
+            const lines = m3u8Text.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (!line) continue;
+                
+                if (line.startsWith('#EXT-X-')) {
+                    // Rewrite URI="..."
+                    const uriMatch = line.match(/URI="([^"]+)"/);
+                    if (uriMatch) {
+                        const uri = uriMatch[1];
+                        if (!uri.startsWith('data:')) {
+                            try {
+                                const absoluteUrl = new URL(uri, baseUrl).href;
+                                const proxiedUrl = PROXY_BASE + encodeURIComponent(absoluteUrl);
+                                lines[i] = line.replace(`URI="${uri}"`, `URI="${proxiedUrl}"`);
+                            } catch (e) {
+                                console.error("Failed to parse URI", uri, e);
+                            }
+                        }
+                    }
+                } else if (!line.startsWith('#')) {
+                    // It's a URL line
+                    try {
+                        const absoluteUrl = new URL(line, baseUrl).href;
+                        lines[i] = PROXY_BASE + encodeURIComponent(absoluteUrl);
+                    } catch (e) {
+                        console.error("Failed to parse URL", line, e);
+                    }
+                }
+            }
+            return lines.join('\n');
+        }
+
+        class ProxyLoader extends Hls.DefaultConfig.loader {
+            constructor(config) {
+                super(config);
+                const originalLoad = this.load.bind(this);
+                
+                this.load = function (context, config, callbacks) {
+                    let originalUrl = context.url;
+                    
+                    if (originalUrl.startsWith(PROXY_BASE)) {
+                        // Extract the actual URL so we can resolve relative paths inside the m3u8
+                        const encodedUrl = originalUrl.substring(PROXY_BASE.length);
+                        originalUrl = decodeURIComponent(encodedUrl);
+                    } else {
+                        // Wrap the URL in the proxy
+                        context.url = PROXY_BASE + encodeURIComponent(originalUrl);
+                    }
+                    
+                    const onSuccess = callbacks.onSuccess;
+                    callbacks.onSuccess = function (response, stats, context, networkDetails) {
+                        // Check if the response is an m3u8 playlist
+                        if (typeof response.data === 'string' && response.data.includes('#EXTM3U')) {
+                            response.data = rewriteM3u8(response.data, originalUrl);
+                        }
+                        onSuccess(response, stats, context, networkDetails);
+                    };
+                    
+                    originalLoad(context, config, callbacks);
+                };
+            }
+        }
+
+        function loadVideo() {
+            const video = document.getElementById('video');
+            const originalUrl = document.getElementById('urlInput').value;
+            
+            if (hls) {
+                hls.destroy();
+            }
+
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    pLoader: ProxyLoader,
+                    fLoader: ProxyLoader,
+                    debug: true // Enable debug to see what's happening in console
+                });
+                
+                const initialUrl = originalUrl.startsWith(PROXY_BASE) 
+                    ? originalUrl 
+                    : PROXY_BASE + encodeURIComponent(originalUrl);
+                    
+                hls.loadSource(initialUrl);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    video.play();
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Native HLS (Safari) - Note: Custom loader won't work here natively without Service Workers
+                video.src = PROXY_BASE + encodeURIComponent(originalUrl);
+                video.addEventListener('loadedmetadata', function() {
+                    video.play();
+                });
+            }
+        }
+
+        // Auto-load on start
+        loadVideo();
+    </script>
+</body>
+</html>

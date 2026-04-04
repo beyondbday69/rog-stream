@@ -8,6 +8,9 @@ import { AnimeDetail } from './pages/AnimeDetail';
 import { Watch } from './pages/Watch';
 import { Schedule } from './pages/Schedule';
 import { Search } from './pages/Search';
+import { Regional } from './pages/Regional';
+import { RegionalAnimeDetail } from './pages/RegionalAnimeDetail';
+import { RegionalWatch } from './pages/RegionalWatch';
 import { Category } from './pages/Category';
 import { Genres } from './pages/Genres';
 import { Admin } from './pages/Admin';
@@ -50,6 +53,9 @@ const AppRoutes = () => {
                 <Route path="/watch/:animeId/:episodeNumber" element={<Watch />} />
                 <Route path="/schedule" element={<Schedule />} />
                 <Route path="/search" element={<Search />} />
+                <Route path="/regional" element={<Regional />} />
+                <Route path="/regional/anime/:id" element={<RegionalAnimeDetail />} />
+                <Route path="/regional/watch/:animeId/:episodeNumber" element={<RegionalWatch />} />
                 <Route path="/genres" element={<Genres />} />
                 <Route path="/animes/:category" element={<Category />} />
                 <Route path="/admin" element={<Admin />} />
@@ -94,7 +100,7 @@ const App: React.FC = () => {
                 <AppRoutes />
             </div>
             
-            <footer className="bg-dark-900 border-t border-brand-400/20 py-12 mt-auto block relative overflow-hidden pb-[env(safe-area-inset-bottom)]">
+            <footer className="bg-dark-900 border-t border-brand-400/20 py-12 mt-auto block relative overflow-hidden pb-32">
                 <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-brand-400 to-transparent opacity-50"></div>
                 <div className="max-w-7xl mx-auto px-4 text-center">
                 <h2 className="text-3xl font-black text-white mb-4 font-display italic tracking-tighter">

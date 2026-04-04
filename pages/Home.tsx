@@ -150,7 +150,7 @@ const ContinueWatchingSection: React.FC = () => {
 };
 
 export const Home: React.FC = () => {
-  const { data, isLoading, isError, error } = useApi<HomeData>(constructUrl('home'));
+  const { data: globalData, isLoading, isError, error } = useApi<HomeData>(constructUrl('home'));
   const { data: genresData } = useApi<string[]>(constructUrl('genres')); // Fetch genres dynamically
   
   const [customSlides, setCustomSlides] = useState<Anime[]>([]);
@@ -281,18 +281,18 @@ export const Home: React.FC = () => {
   );
 
   // Combine custom slides (fetched externally) with API spotlight slides
-  const spotlight = [...customSlides, ...(data?.spotlight || data?.spotlightAnimes || data?.spotLightAnimes || [])];
+  const spotlight = [...customSlides, ...(globalData?.spotlight || globalData?.spotlightAnimes || globalData?.spotLightAnimes || [])];
   
-  const trending = data?.trending || data?.trendingAnimes || [];
-  const topAiring = data?.topAiring || data?.topAiringAnimes || data?.featuredAnimes?.topAiringAnimes || [];
-  const topUpcoming = data?.topUpcoming || data?.topUpcomingAnimes || [];
-  const latestEpisode = data?.latestEpisode || data?.latestEpisodeAnimes || data?.latestEpisodes || [];
-  const top10 = data?.top10?.week || data?.top10Animes?.week || [];
+  const trending = globalData?.trending || globalData?.trendingAnimes || [];
+  const topAiring = globalData?.topAiring || globalData?.topAiringAnimes || globalData?.featuredAnimes?.topAiringAnimes || [];
+  const topUpcoming = globalData?.topUpcoming || globalData?.topUpcomingAnimes || [];
+  const latestEpisode = globalData?.latestEpisode || globalData?.latestEpisodeAnimes || globalData?.latestEpisodes || [];
+  const top10 = globalData?.top10?.week || globalData?.top10Animes?.week || [];
 
   // New sections from featuredAnimes
-  const mostPopular = data?.featuredAnimes?.mostPopularAnimes || [];
-  const mostFavorite = data?.featuredAnimes?.mostFavoriteAnimes || [];
-  const latestCompleted = data?.featuredAnimes?.latestCompletedAnimes || [];
+  const mostPopular = globalData?.featuredAnimes?.mostPopularAnimes || [];
+  const mostFavorite = globalData?.featuredAnimes?.mostFavoriteAnimes || [];
+  const latestCompleted = globalData?.featuredAnimes?.latestCompletedAnimes || [];
 
   return (
     <motion.div 
@@ -328,43 +328,43 @@ export const Home: React.FC = () => {
             link="/animes/trending"
         />
 
-        {/* Most Popular */}
-        <HorizontalSection 
-            title="Most Popular" 
-            subtitle="Fan Favorites"
-            items={mostPopular} 
-            link="/animes/most-popular"
-        />
+                {/* Most Popular */}
+                <HorizontalSection 
+                    title="Most Popular" 
+                    subtitle="Fan Favorites"
+                    items={mostPopular} 
+                    link="/animes/most-popular"
+                />
 
-        {/* Top 10 Ranking */}
-        <HorizontalSection 
-            title="Leaderboard" 
-            subtitle="Global Top 10"
-            items={top10} 
-        />
+                {/* Top 10 Ranking */}
+                <HorizontalSection 
+                    title="Leaderboard" 
+                    subtitle="Global Top 10"
+                    items={top10} 
+                />
 
-        {/* Most Favorite */}
-        <HorizontalSection 
-            title="Most Favorite" 
-            subtitle="Community Choice"
-            items={mostFavorite} 
-            link="/animes/most-favorite"
-        />
+                {/* Most Favorite */}
+                <HorizontalSection 
+                    title="Most Favorite" 
+                    subtitle="Community Choice"
+                    items={mostFavorite} 
+                    link="/animes/most-favorite"
+                />
 
-        {/* Top Airing */}
-        <HorizontalSection 
-            title="Top Airing" 
-            items={topAiring} 
-            link="/animes/top-airing"
-        />
+                {/* Top Airing */}
+                <HorizontalSection 
+                    title="Top Airing" 
+                    items={topAiring} 
+                    link="/animes/top-airing"
+                />
 
-        {/* Latest Completed */}
-        <HorizontalSection 
-            title="Just Finished" 
-            subtitle="Completed Series"
-            items={latestCompleted} 
-            link="/animes/completed"
-        />
+                {/* Latest Completed */}
+                <HorizontalSection 
+                    title="Just Finished" 
+                    subtitle="Completed Series"
+                    items={latestCompleted} 
+                    link="/animes/completed"
+                />
 
         {/* Upcoming */}
         <HorizontalSection 

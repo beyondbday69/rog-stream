@@ -8,9 +8,10 @@ interface AnimeCardProps {
   rank?: number;
   variant?: 'portrait' | 'landscape';
   layout?: 'grid' | 'row';
+  isRegional?: boolean;
 }
 
-export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, rank, variant = 'portrait', layout = 'row' }) => {
+export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, rank, variant = 'portrait', layout = 'row', isRegional = false }) => {
   if (!anime) return null;
 
   const isDub = anime.episodes?.dub && anime.episodes.dub > 0;
@@ -32,9 +33,10 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, rank, variant = 'po
   }
 
   if (variant === 'landscape') {
+    const linkPath = isRegional ? `/regional/anime/${encodeURIComponent(anime.id)}` : `/anime/${encodeURIComponent(anime.id)}`;
     return (
       <div className={`${widthClass} flex-shrink-0 group/card relative`}>
-        <Link to={`/watch/${encodeURIComponent(anime.id)}`} className="block">
+        <Link to={linkPath} className="block">
           {/* Thumbnail Container */}
           <div className="relative aspect-video bg-dark-800 overflow-hidden rounded-sm border border-white/5 group-hover/card:border-brand-400/50 transition-all">
             <img
@@ -80,9 +82,10 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, rank, variant = 'po
   }
 
   // Portrait Mode (Default)
+  const linkPath = isRegional ? `/regional/anime/${encodeURIComponent(anime.id)}` : `/anime/${anime.id}`;
   return (
     <div className={`${widthClass} flex-shrink-0 group/card relative`}>
-      <Link to={`/anime/${anime.id}`} className="block relative">
+      <Link to={linkPath} className="block relative">
         {/* Card Container */}
         <div className="relative aspect-[2/3] overflow-hidden bg-dark-800 mb-2 md:mb-3 transition-all duration-300 rounded-sm group-hover/card:shadow-[0_0_20px_rgba(246,195,67,0.1)]">
           
