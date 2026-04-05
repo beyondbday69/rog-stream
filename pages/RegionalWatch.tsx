@@ -34,7 +34,7 @@ export const RegionalWatch: React.FC = () => {
         );
     }
 
-    if (isError || (!isMovie && !episodeResponse?.success) || (isMovie && !animeResponse?.success)) {
+    if (isError || (!isMovie && !episodeResponse) || (isMovie && !animeResponse)) {
         return (
             <div className="min-h-screen bg-dark-950 flex flex-col items-center justify-center gap-6">
                 <AlertTriangle className="w-20 h-20 text-red-500 opacity-50" />
@@ -53,11 +53,11 @@ export const RegionalWatch: React.FC = () => {
     }
 
     const playerUrl = isMovie 
-        ? animeResponse.data.movie_players[Number(serverIndex)] 
-        : episodeResponse.data.video_player;
+        ? animeResponse?.movie_players?.[Number(serverIndex)] 
+        : episodeResponse?.video_player;
 
     const title = isMovie 
-        ? `${animeResponse.data.title} - Server ${Number(serverIndex) + 1}`
+        ? `${animeResponse?.title} - Server ${Number(serverIndex) + 1}`
         : episodeId;
 
     return (

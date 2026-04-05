@@ -7,8 +7,30 @@ import { DetailSkeleton } from '../components/Skeletons';
 
 export const RegionalAnimeDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const [selectedSeason, setSelectedSeason] = useState("1");
+    const [selectedSeason, setSelectedSeason] = useState("");
     const { data: response, isLoading, isError, error } = useApi<any>(`https://animesalt-api-lovat.vercel.app/api/anime/${id}`);
+
+    const anime = response?.data;
+
+    // Group episodes by season
+    const episodesBySeason = React.useMemo(() => {
+        if (!anime?.episodes) return {};
+        return anime.episodes.reduce((acc: any, ep: any) => {
+            const season = ep.season || "1";
+            if (!acc[season]) acc[season] = [];
+            acc[season].push(ep);
+            return acc;
+        }, {});
+    }, [anime?.episodes]);
+
+    const seasons = React.useMemo(() => Object.keys(episodesBySeason).sort((a, b) => Number(a) - Number(b)), [episodesBySeason]);
+
+    // Update selected season when data loads
+    React.useEffect(() => {
+        if (seasons.length > 0 && (!selectedSeason || !seasons.includes(selectedSeason))) {
+            setSelectedSeason(seasons[0]);
+        }
+    }, [seasons, selectedSeason]);
 
     if (isLoading) return <DetailSkeleton />;
 
@@ -25,19 +47,9 @@ export const RegionalAnimeDetail: React.FC = () => {
         );
     }
 
-    const anime = response.data;
     const displayTitle = anime.title || 'Unknown Title';
     const displayPoster = anime.thumbnail || 'https://via.placeholder.com/400x600?text=No+Image';
 
-    // Group episodes by season
-    const episodesBySeason = anime.episodes?.reduce((acc: any, ep: any) => {
-        const season = ep.season || "1";
-        if (!acc[season]) acc[season] = [];
-        acc[season].push(ep);
-        return acc;
-    }, {}) || {};
-
-    const seasons = Object.keys(episodesBySeason).sort((a, b) => Number(a) - Number(b));
     const currentEpisodes = episodesBySeason[selectedSeason] || (seasons.length > 0 ? episodesBySeason[seasons[0]] : []);
 
     return (
