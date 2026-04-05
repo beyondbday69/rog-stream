@@ -35,7 +35,7 @@ export const RegionalWatch: React.FC = () => {
         );
     }
 
-    if (isError || !animeData || !animeData.data) {
+    if (isError || !animeData || Object.keys(animeData).length === 0) {
         return (
             <div className="min-h-screen bg-dark-950 flex flex-col items-center justify-center gap-6">
                 <AlertTriangle className="w-20 h-20 text-red-500 opacity-50" />
@@ -53,7 +53,7 @@ export const RegionalWatch: React.FC = () => {
         );
     }
 
-    const anime = animeData.data;
+    const anime = animeData;
     const episodes = anime.episodes || [];
     
     const filteredEpisodes = episodes.filter((ep: any) => 
@@ -65,7 +65,7 @@ export const RegionalWatch: React.FC = () => {
     if (isMovie) {
         videoUrl = anime.movie_players && anime.movie_players.length > 0 ? anime.movie_players[0] : "";
     } else {
-        videoUrl = epData?.data?.video_player || "";
+        videoUrl = epData?.video_player || "";
     }
 
     const currentEpTitle = isMovie ? anime.title : (episodes.find((e: any) => e.id === episodeNumber)?.title || `Episode ${episodeNumber}`);

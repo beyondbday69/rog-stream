@@ -12,7 +12,7 @@ export const RegionalAnimeDetail: React.FC = () => {
 
     if (isLoading) return <DetailSkeleton />;
 
-    if (isError || !response || !response.data) {
+    if (isError || !response || Object.keys(response).length === 0) {
         return (
             <div className="min-h-screen pt-24 flex flex-col items-center justify-center text-center px-4">
                 <AlertTriangle className="w-16 h-16 text-brand-400 mb-4 opacity-50" />
@@ -25,7 +25,7 @@ export const RegionalAnimeDetail: React.FC = () => {
         );
     }
 
-    const anime = response.data;
+    const anime = response;
     const displayTitle = anime.title || 'Unknown Title';
     const displayPoster = anime.thumbnail || 'https://via.placeholder.com/400x600?text=No+Image';
 
