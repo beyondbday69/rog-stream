@@ -105,14 +105,14 @@ export const Navbar: React.FC = () => {
             {/* Center: Search */}
             <div className="flex flex-1 items-center justify-center px-2 md:px-8">
               <form onSubmit={handleSearch} className="w-full max-w-lg lg:max-w-3xl relative group">
-                <div className={`relative flex items-center border rounded-none px-3 py-1.5 md:px-4 md:py-2 transition-all duration-300 group-focus-within:border-brand-400 skew-x-[-12deg] w-full ${isScrolled ? 'bg-black border-zinc-800' : 'bg-black/60 border-white/10 backdrop-blur-sm'}`}>
+                <div className={`relative flex items-center border rounded-none px-3 py-1.5 md:px-4 md:py-2 transition-all duration-500 skew-x-[-12deg] w-full opacity-30 hover:opacity-100 group-focus-within:opacity-100 group-focus-within:border-brand-400 ${isScrolled ? 'bg-black border-zinc-800' : 'bg-black/60 border-white/10 backdrop-blur-sm'}`}>
                   <Search className="w-3.5 h-3.5 md:w-4 md:h-4 text-zinc-500 skew-x-[12deg] group-focus-within:text-brand-400 transition-colors flex-shrink-0" />
                   <input
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="SEARCH..."
-                    className="bg-transparent border-none outline-none text-xs md:text-base text-white placeholder-zinc-600 ml-2 md:ml-3 w-full skew-x-[12deg] font-mono tracking-wider uppercase"
+                    className="bg-transparent border-none outline-none text-xs md:text-base text-white placeholder-zinc-600 ml-2 md:ml-3 w-full skew-x-[12deg] font-mono tracking-wider uppercase transition-opacity"
                   />
                   {/* Subtle Corner Accents */}
                   <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-brand-400 opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
