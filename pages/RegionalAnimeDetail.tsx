@@ -7,34 +7,12 @@ import { DetailSkeleton } from '../components/Skeletons';
 
 export const RegionalAnimeDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const [selectedSeason, setSelectedSeason] = useState("");
-    const { data: response, isLoading, isError, error } = useApi<any>(`https://animesalt-api-lovat.vercel.app/api/anime/${id}`);
-
-    const anime = response?.data;
-
-    // Group episodes by season
-    const episodesBySeason = React.useMemo(() => {
-        if (!anime?.episodes) return {};
-        return anime.episodes.reduce((acc: any, ep: any) => {
-            const season = ep.season || "1";
-            if (!acc[season]) acc[season] = [];
-            acc[season].push(ep);
-            return acc;
-        }, {});
-    }, [anime?.episodes]);
-
-    const seasons = React.useMemo(() => Object.keys(episodesBySeason).sort((a, b) => Number(a) - Number(b)), [episodesBySeason]);
-
-    // Update selected season when data loads
-    React.useEffect(() => {
-        if (seasons.length > 0 && (!selectedSeason || !seasons.includes(selectedSeason))) {
-            setSelectedSeason(seasons[0]);
-        }
-    }, [seasons, selectedSeason]);
+    const [selectedSeasonIdx, setSelectedSeasonIdx] = useState(0);
+    const { data: response, isLoading, isError, error } = useApi<any>(`https://hindiapi-green.vercel.app/api/v1/animelok/anime/${id}`);
 
     if (isLoading) return <DetailSkeleton />;
 
-    if (isError || !response || !response.success) {
+    if (isError || !response) {
         return (
             <div className="min-h-screen pt-24 flex flex-col items-center justify-center text-center px-4">
                 <AlertTriangle className="w-16 h-16 text-brand-400 mb-4 opacity-50" />
@@ -47,10 +25,13 @@ export const RegionalAnimeDetail: React.FC = () => {
         );
     }
 
+    const anime = response;
     const displayTitle = anime.title || 'Unknown Title';
-    const displayPoster = anime.thumbnail || 'https://via.placeholder.com/400x600?text=No+Image';
+    const displayPoster = anime.poster || (anime.seasons?.[0]?.episodes?.[0]?.image) || 'https://via.placeholder.com/400x600?text=No+Image';
 
-    const currentEpisodes = episodesBySeason[selectedSeason] || (seasons.length > 0 ? episodesBySeason[seasons[0]] : []);
+    // Determine if we are showing season cards (format 1) or episodes (format 2)
+    const hasSeasonCards = anime.seasons?.some((s: any) => s.id && s.poster);
+    const hasEpisodes = anime.seasons?.some((s: any) => s.episodes && s.episodes.length > 0);
 
     return (
         <motion.div 
@@ -91,7 +72,20 @@ export const RegionalAnimeDetail: React.FC = () => {
                             {anime.genres?.map((genre: string) => (
                                 <span key={genre} className="text-zinc-300">{genre}</span>
                             ))}
+                            {anime.mal && (
+                                <span className="flex items-center gap-1 text-yellow-500">
+                                    <Star className="w-4 h-4 fill-yellow-500" />
+                                    {anime.mal.score || 'N/A'}
+                                </span>
+                            )}
                         </div>
+
+                        {anime.mal && (
+                            <div className="flex gap-4 mb-6 text-xs md:text-sm text-zinc-400 font-mono">
+                                {anime.mal.rating && <span>Rating: {anime.mal.rating}</span>}
+                                {anime.mal.status && <span>Status: {anime.mal.status}</span>}
+                            </div>
+                        )}
 
                         <p className="text-zinc-400 text-sm md:text-base leading-relaxed max-w-3xl line-clamp-3 md:line-clamp-none mb-6">
                             {anime.description || 'No description available.'}
@@ -102,46 +96,56 @@ export const RegionalAnimeDetail: React.FC = () => {
 
             {/* Content Section */}
             <div className="max-w-[1600px] mx-auto px-4 md:px-8 mt-8 md:mt-12">
-                {anime.is_movie ? (
-                    <div className="space-y-6">
+                {hasSeasonCards ? (
+                    <>
                         <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-wide font-display italic mb-6 border-l-4 border-brand-400 pl-4">
-                            Movie Players
+                            Available Seasons
                         </h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {anime.movie_players?.map((player: string, idx: number) => (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                            {anime.seasons.map((season: any) => (
                                 <Link 
-                                    key={idx}
-                                    to={`/regional/movie/${id}/${idx}`}
-                                    className="group flex gap-4 bg-dark-900 border border-white/5 hover:border-brand-400/50 rounded-sm overflow-hidden transition-all p-4 items-center"
+                                    key={season.id} 
+                                    to={`/regional/anime/${season.id}`}
+                                    className="group block relative aspect-[2/3] overflow-hidden bg-dark-800 rounded-sm border border-white/5 hover:border-brand-400/50 transition-all"
                                 >
-                                    <div className="w-12 h-12 rounded-full bg-brand-400 flex items-center justify-center shadow-lg">
-                                        <Play className="w-6 h-6 text-black fill-black ml-1" />
+                                    <img 
+                                        src={season.poster} 
+                                        alt={season.title}
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                                    
+                                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                                        <h3 className="text-sm font-bold text-white group-hover:text-brand-400 transition-colors line-clamp-2">
+                                            {season.title}
+                                        </h3>
                                     </div>
-                                    <div>
-                                        <h4 className="text-sm font-bold text-white group-hover:text-brand-400 transition-colors">
-                                            Server {idx + 1}
-                                        </h4>
+
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <div className="w-12 h-12 flex items-center justify-center rounded-full bg-brand-400 shadow-lg transform scale-50 group-hover:scale-100 transition-all duration-300">
+                                            <Play className="w-5 h-5 text-black fill-black ml-1" />
+                                        </div>
                                     </div>
                                 </Link>
                             ))}
                         </div>
-                    </div>
-                ) : anime.episodes?.length > 0 ? (
+                    </>
+                ) : hasEpisodes ? (
                     <div className="space-y-6">
                         {/* Season Selector */}
-                        {seasons.length > 1 && (
+                        {anime.seasons.length > 1 && (
                             <div className="flex flex-wrap gap-2 mb-6">
-                                {seasons.map((season: string) => (
+                                {anime.seasons.map((season: any, idx: number) => (
                                     <button
-                                        key={season}
-                                        onClick={() => setSelectedSeason(season)}
+                                        key={idx}
+                                        onClick={() => setSelectedSeasonIdx(idx)}
                                         className={`px-4 py-2 text-sm font-bold uppercase tracking-widest rounded-sm transition-colors ${
-                                            selectedSeason === season 
+                                            selectedSeasonIdx === idx 
                                             ? 'bg-brand-400 text-black' 
                                             : 'bg-dark-900 text-zinc-400 hover:text-white hover:bg-dark-800 border border-white/10'
                                         }`}
                                     >
-                                        Season {season}
+                                        {season.title || `Season ${idx + 1}`}
                                     </button>
                                 ))}
                             </div>
@@ -149,15 +153,15 @@ export const RegionalAnimeDetail: React.FC = () => {
 
                         {/* Episodes for Selected Season */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {currentEpisodes.map((ep: any) => (
+                            {anime.seasons[selectedSeasonIdx]?.episodes?.map((ep: any) => (
                                 <Link 
-                                    key={ep.id}
-                                    to={`/regional/watch/${ep.id}`}
+                                    key={ep.number}
+                                    to={`/regional/watch/${anime.id}/${ep.number}`}
                                     className="group flex gap-4 bg-dark-900 border border-white/5 hover:border-brand-400/50 rounded-sm overflow-hidden transition-all"
                                 >
                                     <div className="relative w-32 md:w-40 flex-shrink-0 aspect-video bg-dark-800">
                                         <img 
-                                            src={ep.thumbnail || displayPoster} 
+                                            src={ep.image || displayPoster} 
                                             alt={ep.title}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                         />
@@ -175,6 +179,11 @@ export const RegionalAnimeDetail: React.FC = () => {
                                         <h4 className="text-sm font-bold text-white group-hover:text-brand-400 transition-colors line-clamp-2">
                                             {ep.title}
                                         </h4>
+                                        {ep.isFiller && (
+                                            <span className="mt-2 inline-block px-1.5 py-0.5 bg-zinc-800 text-zinc-400 text-[9px] font-bold uppercase tracking-wider rounded-sm w-max">
+                                                Filler
+                                            </span>
+                                        )}
                                     </div>
                                 </Link>
                             ))}

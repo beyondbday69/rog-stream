@@ -36,7 +36,6 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { name: 'Home', path: '/' },
-    { name: 'Regional', path: '/regional' },
     { name: 'Trending', path: '/animes/trending' },
     { name: 'Genres', path: '/genres' }, 
     { name: 'Schedule', path: '/schedule' },
@@ -220,10 +219,6 @@ export const Navbar: React.FC = () => {
                     <Link to="/" className="flex items-center gap-4 p-4 hover:bg-brand-400/10 text-zinc-300 hover:text-brand-400 transition-all border-l-2 border-transparent hover:border-brand-400 group">
                         <Compass className="w-5 h-5 group-hover:rotate-45 transition-transform" />
                         <span className="font-bold uppercase tracking-wider">Home Base</span>
-                    </Link>
-                    <Link to="/regional" className="flex items-center gap-4 p-4 hover:bg-brand-400/10 text-zinc-300 hover:text-brand-400 transition-all border-l-2 border-transparent hover:border-brand-400 group">
-                        <Compass className="w-5 h-5 group-hover:rotate-45 transition-transform" />
-                        <span className="font-bold uppercase tracking-wider">Regional</span>
                     </Link>
                     <Link to="/genres" className="flex items-center gap-4 p-4 hover:bg-brand-400/10 text-zinc-300 hover:text-brand-400 transition-all border-l-2 border-transparent hover:border-brand-400 group">
                         <LayoutGrid className="w-5 h-5" />

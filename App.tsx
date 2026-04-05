@@ -55,8 +55,7 @@ const AppRoutes = () => {
                 <Route path="/search" element={<Search />} />
                 <Route path="/regional" element={<Regional />} />
                 <Route path="/regional/anime/:id" element={<RegionalAnimeDetail />} />
-                <Route path="/regional/watch/:episodeId" element={<RegionalWatch />} />
-                <Route path="/regional/movie/:slug/:serverIndex" element={<RegionalWatch />} />
+                <Route path="/regional/watch/:animeId/:episodeNumber" element={<RegionalWatch />} />
                 <Route path="/genres" element={<Genres />} />
                 <Route path="/animes/:category" element={<Category />} />
                 <Route path="/admin" element={<Admin />} />

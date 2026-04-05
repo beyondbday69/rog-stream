@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Server, Languages, Info, AlertTriangle, LoaderCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Server, Languages, Info, AlertTriangle } from 'lucide-react';
 import { Episode } from '../types';
 
 interface VideoPlayerProps {
@@ -25,33 +25,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     return (localStorage.getItem('video_server') as 'vidWish' | 'megaPlay') || 'megaPlay';
   });
   const [isSkipping, setIsSkipping] = useState(false);
-  const [videoSrc, setVideoSrc] = useState<string | null>(null);
-  const [isLoadingVideo, setIsLoadingVideo] = useState(true);
-  const [videoError, setVideoError] = useState<string | null>(null);
-
-  // Fetch video from AnimeSalt API
-  useEffect(() => {
-    const fetchVideo = async () => {
-      setIsLoadingVideo(true);
-      setVideoError(null);
-      try {
-        const res = await fetch(`https://animesalt-api-lovat.vercel.app/api/episode/${episodeId}`);
-        const result = await res.json();
-        if (result && result.success && result.data && result.data.video_player) {
-          setVideoSrc(result.data.video_player);
-        } else {
-          setVideoError("Video source not found.");
-        }
-      } catch (err) {
-        console.error("Failed to fetch video:", err);
-        setVideoError("Failed to load video source.");
-      } finally {
-        setIsLoadingVideo(false);
-      }
-    };
-    if (episodeId) fetchVideo();
-  }, [episodeId]);
-
+  
   // Save settings to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('video_category', category);
@@ -71,35 +45,37 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   };
 
+  const extractNumericId = (id: string) => {
+      if (!id) return '';
+      if (id.includes('?ep=')) return id.split('?ep=')[1];
+      if (id.includes('$episode$')) return id.split('$episode$')[1];
+      const match = id.match(/-(\d+)$/);
+      if (match) return match[1];
+      if (/^\d+$/.test(id)) return id;
+      return id;
+  };
+
+  const hianimeEpId = extractNumericId(episodeId);
+  const domain = server === "vidWish" ? "vidwish.live" : "megaplay.buzz";
+  const src = `https://${domain}/stream/s-2/${hianimeEpId}/${category}?autoplay=1`;
+
   // Default layout classes
   const containerClass = "flex flex-col gap-0 w-full relative group";
-  const playerClass = "relative w-full aspect-video bg-black border border-dark-700 shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden z-10 flex items-center justify-center";
+  const playerClass = "relative w-full aspect-video bg-black border border-dark-700 shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden z-10";
 
   return (
     <div className={containerClass}>
       <div className={playerClass}>
-        {isLoadingVideo ? (
-          <div className="flex flex-col items-center justify-center text-zinc-500 gap-3">
-            <LoaderCircle className="w-8 h-8 animate-spin text-brand-400" />
-            <span className="text-xs uppercase tracking-widest font-bold">Loading Player...</span>
-          </div>
-        ) : videoError ? (
-          <div className="flex flex-col items-center justify-center text-red-500 gap-3">
-            <AlertTriangle className="w-8 h-8" />
-            <span className="text-xs uppercase tracking-widest font-bold">{videoError}</span>
-          </div>
-        ) : (
-          <iframe
-            key={`${episodeId}`}
-            src={videoSrc || ""}
-            className="w-full h-full"
-            allowFullScreen
-            scrolling="no"
-            frameBorder="0"
-            allow="autoplay; fullscreen"
-            title="Anime Stream"
-          ></iframe>
-        )}
+        <iframe
+          key={`${server}-${category}-${episodeId}`}
+          src={src}
+          className="w-full h-full"
+          allowFullScreen
+          scrolling="no"
+          frameBorder="0"
+          allow="autoplay; fullscreen"
+          title="Anime Stream"
+        ></iframe>
       </div>
 
       <div className="bg-dark-900 border-x border-b border-dark-700 p-3 md:p-6 flex flex-col gap-4 md:gap-6 shadow-lg relative overflow-hidden">
@@ -107,12 +83,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
         <div className="relative z-10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
           
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto opacity-50 pointer-events-none">
-             {/* Server and Audio controls disabled since AnimeSalt player handles them or doesn't expose them directly here */}
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
              <div className="flex flex-col gap-1.5 flex-1 md:flex-none min-w-[140px]">
                  <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1"><Server className="w-3 h-3" /> Server</span>
                  <div className="flex bg-dark-950 p-1 rounded-sm border border-dark-700">
-                    <button className="flex-1 px-3 py-1.5 text-[10px] md:text-xs font-bold uppercase transition-all rounded-sm bg-brand-400 text-black">Auto</button>
+                    <button onClick={() => setServer("megaPlay")} className={`flex-1 px-3 py-1.5 text-[10px] md:text-xs font-bold uppercase transition-all rounded-sm ${server === "megaPlay" ? 'bg-brand-400 text-black' : 'text-zinc-500 hover:text-white'}`}>Mega</button>
+                    <button onClick={() => setServer("vidWish")} className={`flex-1 px-3 py-1.5 text-[10px] md:text-xs font-bold uppercase transition-all rounded-sm ${server === "vidWish" ? 'bg-brand-400 text-black' : 'text-zinc-500 hover:text-white'}`}>VidWish</button>
+                 </div>
+             </div>
+             <div className="flex flex-col gap-1.5 flex-1 md:flex-none">
+                 <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1"><Languages className="w-3 h-3" /> Audio</span>
+                 <div className="flex bg-dark-950 p-1 rounded-sm border border-dark-700">
+                    {["sub", "dub"].map((type) => (
+                        <button key={type} onClick={() => setCategory(type as 'sub' | 'dub')} className={`flex-1 px-3 py-1.5 text-[10px] md:text-xs font-bold uppercase transition-all rounded-sm ${category === type ? 'bg-white text-black' : 'text-zinc-500 hover:text-white'}`}>{type}</button>
+                    ))}
                  </div>
              </div>
           </div>

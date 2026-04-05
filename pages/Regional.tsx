@@ -55,8 +55,8 @@ export const Regional: React.FC = () => {
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    const { data: homeData, isLoading: isHomeLoading, isError: isHomeError, error: homeError } = useApi<any>('https://animesalt-api-lovat.vercel.app/api/home', { enabled: !debouncedQuery });
-    const { data: searchData, isLoading: isSearchLoading, isError: isSearchError, error: searchError } = useApi<any>(`https://animesalt-api-lovat.vercel.app/api/search?q=${encodeURIComponent(debouncedQuery)}`, { enabled: !!debouncedQuery });
+    const { data: homeData, isLoading: isHomeLoading, isError: isHomeError, error: homeError } = useApi<any>('https://hindiapi-green.vercel.app/api/v1/animelok/home', { enabled: !debouncedQuery });
+    const { data: searchData, isLoading: isSearchLoading, isError: isSearchError, error: searchError } = useApi<any>(`https://hindiapi-green.vercel.app/api/v1/animelok/search?q=${encodeURIComponent(debouncedQuery)}`, { enabled: !!debouncedQuery });
 
     const isLoading = debouncedQuery ? isSearchLoading : isHomeLoading;
     const isError = debouncedQuery ? isSearchError : isHomeError;
@@ -73,9 +73,9 @@ export const Regional: React.FC = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-3xl md:text-5xl font-black text-white uppercase tracking-widest font-display italic">
-                            Regional <span className="text-brand-400">Anime</span>
+                            Regional
                         </h1>
-                        <p className="text-zinc-500 font-mono text-sm mt-2">Hindi, Tamil, Telugu Dubbed Anime</p>
+                        <p className="text-zinc-500 font-mono text-sm mt-2">Hindi, Tamil, Telugu Dubbed</p>
                     </div>
 
                     <div className="relative w-full md:w-96">
@@ -110,25 +110,25 @@ export const Regional: React.FC = () => {
                     </div>
                 )}
 
-                {!isLoading && !isError && debouncedQuery && searchData?.results && (
+                {!isLoading && !isError && debouncedQuery && searchData?.animes && (
                     <div>
                         <h2 className="text-xl font-bold text-white mb-6 uppercase tracking-widest border-l-4 border-brand-400 pl-3">
                             Search Results for "{debouncedQuery}"
                         </h2>
-                        {searchData.results.length === 0 ? (
+                        {searchData.animes.length === 0 ? (
                             <p className="text-zinc-500 font-mono text-center py-10">No results found.</p>
                         ) : (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-                                {searchData.results.map((item: any) => (
+                                {searchData.animes.map((item: any) => (
                                     <AnimeCard 
-                                        key={item.slug}
+                                        key={item.id}
                                         anime={{
-                                            id: item.slug,
+                                            id: item.id,
                                             title: item.title,
-                                            image: item.image,
-                                            banner: item.image,
+                                            image: item.poster,
+                                            banner: item.poster,
                                             type: 'TV',
-                                            episodes: { sub: 0, dub: 1, eps: 0 }
+                                            episodes: { sub: 0, dub: item.isDub ? 1 : 0, eps: 0 }
                                         } as Anime}
                                         layout="grid"
                                         isRegional={true}
@@ -139,27 +139,23 @@ export const Regional: React.FC = () => {
                     </div>
                 )}
 
-                {!isLoading && !isError && !debouncedQuery && homeData && (
+                {!isLoading && !isError && !debouncedQuery && homeData?.sections && (
                     <div className="space-y-4">
-                        {Object.entries(homeData).map(([key, items]: [string, any]) => {
-                            if (!Array.isArray(items)) return null;
-                            const title = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-                            return (
-                                <HorizontalSection 
-                                    key={key}
-                                    title={title}
-                                    isRegional={true}
-                                    items={items.map((item: any) => ({
-                                        id: item.slug,
-                                        title: item.title,
-                                        image: item.image,
-                                        banner: item.image,
-                                        type: 'TV',
-                                        episodes: { sub: 0, dub: 1, eps: 0 }
-                                    } as Anime))}
-                                />
-                            );
-                        })}
+                        {homeData.sections.map((section: any, idx: number) => (
+                            <HorizontalSection 
+                                key={idx}
+                                title={section.title}
+                                isRegional={true}
+                                items={section.items.map((item: any) => ({
+                                    id: item.id,
+                                    title: item.title,
+                                    image: item.poster,
+                                    banner: item.poster,
+                                    type: 'TV',
+                                    episodes: { sub: 0, dub: item.isDub ? 1 : 0, eps: 0 }
+                                } as Anime))}
+                            />
+                        ))}
                     </div>
                 )}
             </div>

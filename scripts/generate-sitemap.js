@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Constants
-const API_URL = 'https://animesalt-api-lovat.vercel.app/api/home'; // Main data source
+const API_URL = 'https://backendweb-ivory.vercel.app/api/v1/home'; // Main data source
 const BASE_URL = 'https://rog-stream.vercel.app';
 
 // Static Routes to always include
