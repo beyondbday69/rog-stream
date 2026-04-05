@@ -271,7 +271,32 @@ export const Home: React.FC = () => {
     loadCustomSlides();
   }, []);
 
-  if (isLoading) return <HomeSkeleton />;
+  if (isLoading) {
+      return (
+          <div className="min-h-screen pt-24 pb-20 bg-dark-950">
+              <div className="max-w-[1600px] mx-auto px-4 md:px-6 mb-8">
+                  <div className="space-y-8 animate-pulse mt-8">
+                      {/* Hero Skeleton */}
+                      <div className="w-full h-[40vh] md:h-[60vh] bg-dark-800 rounded-sm mb-12 hidden md:block"></div>
+                      
+                      {/* Row Skeletons */}
+                      {[1, 2, 3, 4].map((section) => (
+                          <div key={section} className="mb-8 md:mb-12">
+                              <div className="w-48 h-8 bg-dark-800 rounded-sm mb-4 border-l-4 border-dark-700"></div>
+                              <div className="flex overflow-x-hidden gap-3 md:gap-5">
+                                  {[1, 2, 3, 4, 5, 6, 7].map((card) => (
+                                      <div key={card} className="w-[160px] md:w-[220px] aspect-[2/3] bg-dark-800 rounded-sm flex-shrink-0 relative overflow-hidden">
+                                          <div className="absolute inset-0 bg-gradient-to-t from-dark-900 to-transparent"></div>
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+          </div>
+      );
+  }
   if (isError) return (
       <div className="h-screen flex flex-col items-center justify-center bg-dark-950 text-center px-4">
         <AlertTriangle className="w-16 h-16 text-brand-400 mb-4 opacity-50" />
