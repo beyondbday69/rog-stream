@@ -331,12 +331,6 @@ export const AnimeDetail: React.FC = () => {
       
       {/* Header Section */}
       <div className="relative w-full h-[40vh] min-h-[300px] md:h-[60vh] md:min-h-[500px] bg-dark-950 overflow-hidden">
-        <button 
-            onClick={() => navigate(-1)}
-            className="absolute top-4 left-4 z-50 p-2 bg-dark-900/50 backdrop-blur-sm rounded-full text-white hover:bg-brand-400/50 transition-colors"
-        >
-            <ArrowLeft className="w-6 h-6" />
-        </button>
         <div className="absolute inset-0">
              <img 
                 src={heroImage} 
