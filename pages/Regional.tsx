@@ -100,7 +100,22 @@ export const Regional: React.FC = () => {
                     </div>
                 </div>
 
-                {isLoading && <HomeSkeleton />}
+                {isLoading && (
+                    <div className="space-y-8 animate-pulse">
+                        {[1, 2, 3].map((section) => (
+                            <div key={section} className="mb-8 md:mb-12">
+                                <div className="w-48 h-8 bg-dark-800 rounded-sm mb-4 border-l-4 border-dark-700"></div>
+                                <div className="flex overflow-x-hidden gap-3 md:gap-5">
+                                    {[1, 2, 3, 4, 5, 6, 7].map((card) => (
+                                        <div key={card} className="w-[160px] md:w-[220px] aspect-[2/3] bg-dark-800 rounded-sm flex-shrink-0 relative overflow-hidden">
+                                            <div className="absolute inset-0 bg-gradient-to-t from-dark-900 to-transparent"></div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 {isError && !isLoading && (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
