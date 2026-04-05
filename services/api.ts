@@ -1,24 +1,23 @@
-
 import { useQuery, useInfiniteQuery, UseQueryOptions } from "@tanstack/react-query";
 import axios from "axios";
 import { ApiResponse } from "../types";
 
 // Default Configuration
 export const DEFAULT_CONFIG = {
-  baseUrl: "https://aniwatchapi-seven-teal.vercel.app/aniwatch",
+  baseUrl: "https://animesalt-api-lovat.vercel.app/api",
   apiKey: "", // For Anime Backend
   geminiApiKey: "", // For Google Gemini AI
   endpoints: {
-    home: "/", // Fetch home page data from base URL
-    search: "/search?keyword={q}&page={page}", // New search structure
+    home: "/home", 
+    search: "/search?q={q}", 
     details: "/anime/{id}", 
-    episodes: "/episodes/{id}", 
-    servers: "/servers?id={id}",
-    sources: "/episode-srcs?id={id}&server={server}&category={category}",
-    suggestion: "/search/suggest?keyword={q}", 
-    genres: "/genres", // Fetch list of genres
-    genre: "/genre/{id}", // Fetch specific genre data
-    schedule: "/schedule?date={date}", // Fetch schedule data
+    episodes: "/anime/{id}", 
+    servers: "", // Not needed for AnimeSalt
+    sources: "/episode/{id}", 
+    suggestion: "/search?q={q}", 
+    genres: "", // Not needed
+    genre: "", // Not needed
+    schedule: "", // Not needed
   }
 };
 
@@ -28,8 +27,14 @@ export const getConfig = () => {
     if (stored) {
       const parsed = JSON.parse(stored);
       
-      // Force update if old hianime endpoints are detected
-      if (parsed.endpoints && Object.values(parsed.endpoints).some((v: any) => typeof v === 'string' && v.includes('hianime'))) {
+      // Force update if old hianime or aniwatch endpoints are detected
+      if (parsed.endpoints && Object.values(parsed.endpoints).some((v: any) => typeof v === 'string' && (v.includes('hianime') || v.includes('aniwatch')))) {
+        localStorage.removeItem("api_config");
+        return DEFAULT_CONFIG;
+      }
+      
+      // Force update if baseUrl doesn't match animesalt-api-lovat.vercel.app (since the user requested to update the API base URL explicitly and not use animelok or old ones)
+      if (parsed.baseUrl && !parsed.baseUrl.includes('animesalt-api-lovat')) {
         localStorage.removeItem("api_config");
         return DEFAULT_CONFIG;
       }
@@ -70,7 +75,7 @@ export const constructUrl = (key: keyof typeof DEFAULT_CONFIG.endpoints, params:
   if ((key === 'search' || key === 'suggestion') && !path.includes('?')) {
      const query = queryParams.q || queryParams.keyword || '';
      if (query) {
-        path = `${path}?keyword=${encodeURIComponent(query)}`;
+        path = `${path}?q=${encodeURIComponent(query)}`;
         delete queryParams.q;
         delete queryParams.keyword;
      }
@@ -113,8 +118,67 @@ export const fetchData = async <T>(url: string): Promise<ApiResponse<T>> => {
   
   try {
     console.log(`Fetching data via proxy: ${proxyUrl}`);
-    const { data } = await axios.get<ApiResponse<T>>(proxyUrl, requestOptions);
-    return data;
+    const { data } = await axios.get<any>(proxyUrl, requestOptions);
+    
+    const mapAnime = (item: any) => {
+        if (item) {
+            if (item.slug && !item.id) item.id = item.slug;
+            if (item.image && !item.poster) item.poster = item.image;
+        }
+        return item;
+    };
+    
+    // Intercept AnimeSalt API Response Structure
+    if (data && data.success && data.data) {
+        const payload = data.data;
+        
+        // Map Home Data
+        if (payload.fresh_drops) {
+            payload.spotlight = payload.fresh_drops;
+            payload.trending = payload['on-air_series_view_more'] || [];
+            payload.topAiring = payload.new_anime_arrivals_view_more || [];
+            payload.latestEpisode = payload.latest_anime_movies_view_more || [];
+            payload.topUpcoming = payload.fresh_cartoon_films_view_more || [];
+            payload.top10 = { week: payload['just_in:_cartoon_series_view_more'] || [] };
+            
+            [
+              payload.spotlight, 
+              payload.trending, 
+              payload.topAiring, 
+              payload.latestEpisode, 
+              payload.topUpcoming, 
+              payload.top10.week
+            ].forEach(arr => {
+                if (Array.isArray(arr)) arr.forEach(mapAnime);
+            });
+        }
+        
+        // Map Details & Episodes
+        if (payload.episodes && Array.isArray(payload.episodes)) {
+           payload.episodes.forEach((ep: any) => {
+               if (!ep.id) ep.id = ep.url?.split('/').filter(Boolean).pop() || '';
+           });
+        }
+
+        // Map details main attributes
+        mapAnime(payload);
+        
+        // Return wrapped in expected structure
+        return data as ApiResponse<T>;
+    }
+
+    // Map Search Data
+    if (data && data.success && Array.isArray(data.results)) {
+        data.results.forEach(mapAnime);
+        // Optional: add missing properties searchResult expects
+        if (!data.currentPage) data.currentPage = 1;
+        if (!data.totalPages) data.totalPages = 1;
+        if (data.hasNextPage === undefined) data.hasNextPage = false;
+        
+        return data as ApiResponse<T>;
+    }
+
+    return data as ApiResponse<T>;
   } catch (error) {
     console.error(`Error fetching data via proxy: ${proxyUrl}`, error);
     if (axios.isAxiosError(error)) {
