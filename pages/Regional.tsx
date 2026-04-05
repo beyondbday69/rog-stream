@@ -55,8 +55,8 @@ export const Regional: React.FC = () => {
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    const { data: homeData, isLoading: isHomeLoading, isError: isHomeError, error: homeError } = useApi<any>('https://hindiapi-green.vercel.app/api/v1/animelok/home', { enabled: !debouncedQuery });
-    const { data: searchData, isLoading: isSearchLoading, isError: isSearchError, error: searchError } = useApi<any>(`https://hindiapi-green.vercel.app/api/v1/animelok/search?q=${encodeURIComponent(debouncedQuery)}`, { enabled: !!debouncedQuery });
+    const { data: homeData, isLoading: isHomeLoading, isError: isHomeError, error: homeError } = useApi<any>('https://animesalt-api-lovat.vercel.app/api/home', { enabled: !debouncedQuery });
+    const { data: searchData, isLoading: isSearchLoading, isError: isSearchError, error: searchError } = useApi<any>(`https://animesalt-api-lovat.vercel.app/api/search?q=${encodeURIComponent(debouncedQuery)}`, { enabled: !!debouncedQuery });
 
     const isLoading = debouncedQuery ? isSearchLoading : isHomeLoading;
     const isError = debouncedQuery ? isSearchError : isHomeError;
@@ -110,25 +110,25 @@ export const Regional: React.FC = () => {
                     </div>
                 )}
 
-                {!isLoading && !isError && debouncedQuery && searchData?.animes && (
+                {!isLoading && !isError && debouncedQuery && searchData?.results && (
                     <div>
                         <h2 className="text-xl font-bold text-white mb-6 uppercase tracking-widest border-l-4 border-brand-400 pl-3">
                             Search Results for "{debouncedQuery}"
                         </h2>
-                        {searchData.animes.length === 0 ? (
+                        {searchData.results.length === 0 ? (
                             <p className="text-zinc-500 font-mono text-center py-10">No results found.</p>
                         ) : (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-                                {searchData.animes.map((item: any) => (
+                                {searchData.results.map((item: any) => (
                                     <AnimeCard 
-                                        key={item.id}
+                                        key={item.slug}
                                         anime={{
-                                            id: item.id,
+                                            id: item.slug,
                                             title: item.title,
-                                            image: item.poster,
-                                            banner: item.poster,
+                                            image: item.image,
+                                            banner: item.image,
                                             type: 'TV',
-                                            episodes: { sub: 0, dub: item.isDub ? 1 : 0, eps: 0 }
+                                            episodes: { sub: 0, dub: 1, eps: 0 }
                                         } as Anime}
                                         layout="grid"
                                         isRegional={true}
@@ -139,21 +139,21 @@ export const Regional: React.FC = () => {
                     </div>
                 )}
 
-                {!isLoading && !isError && !debouncedQuery && homeData?.sections && (
+                {!isLoading && !isError && !debouncedQuery && homeData && Object.keys(homeData).length > 0 && (
                     <div className="space-y-4">
-                        {homeData.sections.map((section: any, idx: number) => (
+                        {Object.entries(homeData).map(([key, items]: [string, any], idx: number) => (
                             <HorizontalSection 
                                 key={idx}
-                                title={section.title}
+                                title={key.replace(/_/g, ' ').toUpperCase()}
                                 isRegional={true}
-                                items={section.items.map((item: any) => ({
-                                    id: item.id,
+                                items={Array.isArray(items) ? items.map((item: any) => ({
+                                    id: item.slug,
                                     title: item.title,
-                                    image: item.poster,
-                                    banner: item.poster,
+                                    image: item.image,
+                                    banner: item.image,
                                     type: 'TV',
-                                    episodes: { sub: 0, dub: item.isDub ? 1 : 0, eps: 0 }
-                                } as Anime))}
+                                    episodes: { sub: 0, dub: 1, eps: 0 }
+                                } as Anime)) : []}
                             />
                         ))}
                     </div>

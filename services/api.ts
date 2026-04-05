@@ -99,24 +99,17 @@ export const fetchData = async <T>(url: string): Promise<ApiResponse<T>> => {
     }
   };
 
+  let targetUrl = url;
+  
   // Support absolute URLs (overriding baseUrl)
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    try {
-      const { data } = await axios.get<ApiResponse<T>>(url, requestOptions);
-      return data;
-    } catch (error) {
-       if (axios.isAxiosError(error)) {
-          throw new Error(error.response?.data?.message || error.message);
-       }
-       throw new Error(String(error));
-    }
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    const baseUrl = getApiBaseUrl().replace(/\/+$/, '');
+    const endpoint = url.startsWith('/') ? url : `/${url}`;
+    targetUrl = `${baseUrl}${endpoint}`;
   }
-
-  const baseUrl = getApiBaseUrl().replace(/\/+$/, '');
-  const endpoint = url.startsWith('/') ? url : `/${url}`;
   
   // Use proxy for all requests to avoid CORS
-  const proxyUrl = `/api/proxy?url=${encodeURIComponent(`${baseUrl}${endpoint}`)}`;
+  const proxyUrl = `/api/proxy?url=${encodeURIComponent(targetUrl)}`;
   
   try {
     console.log(`Fetching data via proxy: ${proxyUrl}`);
