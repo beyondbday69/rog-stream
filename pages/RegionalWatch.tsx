@@ -25,30 +25,6 @@ export const RegionalWatch: React.FC = () => {
 
     const watchData = response;
 
-    const normalizeServerUrl = (rawUrl: any) => {
-        if (typeof rawUrl !== 'string') return rawUrl;
-        let url = rawUrl;
-
-        try {
-            if (url.includes('%')) {
-                url = decodeURIComponent(url);
-            }
-            if (!url.startsWith('http') && !url.startsWith('//')) {
-                try {
-                    url = atob(url);
-                } catch (e) {}
-            }
-        } catch (e) {
-            console.error("Failed to decode server URL", e);
-        }
-
-        if (url.includes('localhost:4000')) {
-            url = url.replace('http://localhost:4000', 'https://hindiapi-green.vercel.app');
-        }
-
-        return url;
-    };
-
     // Auto-select first server when data loads
     useEffect(() => {
         if (watchData?.servers && watchData.servers.length > 0) {
@@ -66,8 +42,20 @@ export const RegionalWatch: React.FC = () => {
             if (filteredServers.length > 0) {
                 // If current selected server is not in the new language, select first
                 if (!selectedServer || (selectedServer.language || 'Unknown') !== selectedLanguage) {
+                    // Fix localhost and handle potential double encoding
                     const server = filteredServers[0];
-                    const url = normalizeServerUrl(server.url);
+                    let url = server.url;
+                    if (url && url.includes('localhost:4000')) {
+                        url = url.replace('http://localhost:4000', 'https://hindiapi-green.vercel.app');
+                    }
+                    // Try to decode if it looks encoded
+                    try {
+                        if (url && url.includes('%')) {
+                            url = decodeURIComponent(url);
+                        }
+                    } catch (e) {
+                        console.error("Failed to decode server URL", e);
+                    }
                     setSelectedServer({ ...server, url });
                 }
             }
@@ -77,7 +65,7 @@ export const RegionalWatch: React.FC = () => {
     // HLS Player Setup
     useEffect(() => {
         const video = videoRef.current;
-        if (!video || !selectedServer || !selectedServer.isM3U8 || !selectedServer.url) return;
+        if (!video || !selectedServer || !selectedServer.isM3U8) return;
 
         let hls: Hls | null = null;
 
@@ -137,11 +125,11 @@ export const RegionalWatch: React.FC = () => {
                     this.load = function (context: any, config: any, callbacks: any) {
                         let originalUrl = context.url;
                         
-                        if (typeof originalUrl === 'string' && originalUrl.startsWith(PROXY_BASE)) {
+                        if (originalUrl.startsWith(PROXY_BASE)) {
                             // Extract the actual URL so we can resolve relative paths inside the m3u8
                             const encodedUrl = originalUrl.substring(PROXY_BASE.length);
                             originalUrl = decodeURIComponent(encodedUrl);
-                        } else if (typeof originalUrl === 'string') {
+                        } else {
                             // Wrap the URL in the proxy
                             context.url = PROXY_BASE + encodeURIComponent(originalUrl);
                         }
@@ -166,9 +154,9 @@ export const RegionalWatch: React.FC = () => {
             });
             
             // Wrap the initial URL in the proxy
-            const initialUrl = (typeof selectedServer.url === 'string' && selectedServer.url.startsWith(PROXY_BASE))
+            const initialUrl = selectedServer.url.startsWith(PROXY_BASE) 
                 ? selectedServer.url 
-                : PROXY_BASE + encodeURIComponent(selectedServer.url || '');
+                : PROXY_BASE + encodeURIComponent(selectedServer.url);
                 
             hls.loadSource(initialUrl);
             hls.attachMedia(video);
@@ -356,7 +344,19 @@ export const RegionalWatch: React.FC = () => {
                                             {watchData.servers
                                                 .filter((s: any) => (s.language || 'Unknown') === selectedLanguage)
                                                 .map((server: any, idx: number) => {
-                                                    const serverUrl = normalizeServerUrl(server.url);
+                                                    // Fix localhost and handle potential double encoding
+                                                    let serverUrl = server.url?.includes('localhost:4000') 
+                                                        ? server.url.replace('http://localhost:4000', 'https://hindiapi-green.vercel.app')
+                                                        : server.url;
+                                                    
+                                                    // Try to decode if it looks encoded
+                                                    try {
+                                                        if (serverUrl && serverUrl.includes('%')) {
+                                                            serverUrl = decodeURIComponent(serverUrl);
+                                                        }
+                                                    } catch (e) {
+                                                        console.error("Failed to decode server URL", e);
+                                                    }
                                                         
                                                     const isSelected = selectedServer?.url === serverUrl;
                                                     

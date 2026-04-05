@@ -73,9 +73,9 @@ export const Regional: React.FC = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-3xl md:text-5xl font-black text-white uppercase tracking-widest font-display italic">
-                            Regional
+                            Regional <span className="text-brand-400">Anime</span>
                         </h1>
-                        <p className="text-zinc-500 font-mono text-sm mt-2">Hindi, Tamil, Telugu Dubbed</p>
+                        <p className="text-zinc-500 font-mono text-sm mt-2">Hindi, Tamil, Telugu Dubbed Anime</p>
                     </div>
 
                     <div className="relative w-full md:w-96">

@@ -510,7 +510,7 @@ export const AnimeDetail: React.FC = () => {
                 {/* Render Episodes directly */}
                 <div className="max-h-[600px] overflow-y-auto pr-2 -mr-2 scrollbar-thin scrollbar-thumb-dark-700 scrollbar-track-dark-800/50 bg-dark-900 border border-dark-700">
                     <div className="flex flex-col divide-y divide-dark-700">
-                        {(anime.seasons?.flatMap((s: any) => s.episodes || []) || []).concat(episodes).filter((v: any, i: number, a: any[]) => a.findIndex((t: any) => t.id === v.id) === i).map((ep: any) => {
+                        {anime.seasons?.flatMap((s: any) => s.episodes || []).concat(episodes).filter((v: any, i: number, a: any[]) => a.findIndex((t: any) => t.id === v.id) === i).map((ep: any) => {
                             const isWatched = lastWatchedEpNumber ? ep.number <= lastWatchedEpNumber : false;
                             const isNextUp = nextEpisodeToWatch ? ep.id === nextEpisodeToWatch.id : false;
 
