@@ -71,11 +71,11 @@ export const Navbar: React.FC = () => {
         
         {/* Subtle top gradient for PC when at the top for visibility */}
         <div 
-            className="absolute inset-0 bg-gradient-to-b from-black/60 to-transparent hidden md:block pointer-events-none transition-opacity duration-300"
+            className="absolute inset-0 bg-gradient-to-b from-black/60 to-transparent hidden md:block pointer-events-none transition-opacity duration-300 z-10"
             style={{ opacity: 1 - scrollRatio }}
         />
 
-        <div className="relative z-20 max-w-[1600px] mx-auto px-3 md:px-8 h-full">
+        <div className="relative z-30 max-w-[1600px] mx-auto px-3 md:px-8 h-full pointer-events-auto">
           <div className="flex items-center h-full gap-3 md:gap-8">
             
             {/* Left: Logo & Nav */}
