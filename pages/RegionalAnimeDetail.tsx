@@ -60,15 +60,16 @@ export const RegionalAnimeDetail: React.FC = () => {
             className="min-h-screen bg-dark-950 pb-20"
         >
             {/* Hero Banner */}
-            <div className="relative h-[40vh] md:h-[60vh] w-full">
-                <div className="absolute inset-0 bg-dark-950">
+            <div className="relative h-[40vh] md:h-[60vh] w-full bg-dark-950 overflow-hidden">
+                <div className="absolute inset-0">
                     <img 
                         src={displayPoster} 
                         alt={displayTitle}
-                        className="w-full h-full object-cover opacity-40 blur-sm"
+                        className="w-full h-full object-cover opacity-30 blur-sm"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-dark-950 via-dark-950/80 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-dark-950/90 to-transparent" />
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-dark-950 via-dark-950/80 to-transparent" />
                 
                 <div className="absolute bottom-0 left-0 right-0 max-w-[1600px] mx-auto px-4 md:px-8 pb-8 flex flex-col md:flex-row gap-6 md:gap-10 items-end">
                     {/* Poster */}
