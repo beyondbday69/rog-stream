@@ -104,7 +104,7 @@ export const Navbar: React.FC = () => {
 
             {/* Center: Search */}
             <div className="flex flex-1 items-center justify-center px-2 md:px-8">
-              <form onSubmit={handleSearch} className="w-full max-w-md lg:max-w-xl relative group">
+              <form onSubmit={handleSearch} className="w-full max-w-lg lg:max-w-3xl relative group">
                 <div className={`relative flex items-center border rounded-none px-3 py-1.5 md:px-4 md:py-2 transition-all duration-300 group-focus-within:border-brand-400 skew-x-[-12deg] w-full ${isScrolled ? 'bg-black border-zinc-800' : 'bg-black/60 border-white/10 backdrop-blur-sm'}`}>
                   <Search className="w-3.5 h-3.5 md:w-4 md:h-4 text-zinc-500 skew-x-[12deg] group-focus-within:text-brand-400 transition-colors flex-shrink-0" />
                   <input
