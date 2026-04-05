@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useApi } from '../services/api';
 import { LoaderCircle, AlertTriangle, ChevronLeft, List, Grid2X2, Search } from 'lucide-react';
@@ -9,6 +9,7 @@ export const RegionalWatch: React.FC = () => {
     const navigate = useNavigate();
     const [epSearch, setEpSearch] = useState('');
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+    const [selectedSeasonIdx, setSelectedSeasonIdx] = useState(0);
     
     // Fetch Anime Details for the sidebar
     const { data: animeData, isLoading: isAnimeLoading, isError: isAnimeError, error: animeError } = useApi<any>(
@@ -25,6 +26,31 @@ export const RegionalWatch: React.FC = () => {
     const isLoading = isAnimeLoading || (isEpLoading && !isMovie);
     const isError = isAnimeError || (isEpError && !isMovie);
     const error = animeError || epError;
+
+    // Group episodes by season
+    const seasonsMap: Record<string, any[]> = {};
+    if (animeData && animeData.episodes && Array.isArray(animeData.episodes)) {
+        animeData.episodes.forEach((ep: any) => {
+            const s = ep.season || '1';
+            if (!seasonsMap[s]) seasonsMap[s] = [];
+            seasonsMap[s].push(ep);
+        });
+    }
+
+    const seasons = Object.entries(seasonsMap).map(([title, episodes]) => ({
+        title: `Season ${title}`,
+        episodes
+    }));
+
+    // Auto-select season based on the current playing episode
+    useEffect(() => {
+        if (seasons.length > 0 && !isMovie) {
+            const playingSeasonIdx = seasons.findIndex(s => s.episodes.some((e: any) => e.id === episodeNumber));
+            if (playingSeasonIdx !== -1) {
+                setSelectedSeasonIdx(playingSeasonIdx);
+            }
+        }
+    }, [animeData, episodeNumber, isMovie]);
 
     if (isLoading) {
         return (
@@ -56,7 +82,9 @@ export const RegionalWatch: React.FC = () => {
     const anime = animeData;
     const episodes = anime.episodes || [];
     
-    const filteredEpisodes = episodes.filter((ep: any) => 
+    const activeSeasonEps = seasons[selectedSeasonIdx]?.episodes || [];
+    
+    const filteredEpisodes = activeSeasonEps.filter((ep: any) => 
         ep.number.toString().includes(epSearch) || 
         (ep.title && ep.title.toLowerCase().includes(epSearch.toLowerCase()))
     );
@@ -152,20 +180,39 @@ export const RegionalWatch: React.FC = () => {
                                             </button>
                                         </div>
                                         <span className="text-[10px] font-mono text-zinc-500 bg-black/50 px-2 py-1 rounded border border-white/5">
-                                            {episodes.length}
+                                            {activeSeasonEps.length}
                                         </span>
                                     </div>
                                 </div>
-                                {/* Search Box */}
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-500" />
-                                    <input 
-                                        type="text"
-                                        placeholder="Search episode..."
-                                        value={epSearch}
-                                        onChange={(e) => setEpSearch(e.target.value)}
-                                        className="w-full bg-dark-950 border border-dark-600 rounded-sm py-2 pl-9 pr-3 text-xs text-white placeholder-zinc-600 focus:border-brand-400 focus:outline-none"
-                                    />
+                                {/* Search Box & Season Selector */}
+                                <div className="space-y-3">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-500" />
+                                        <input 
+                                            type="text"
+                                            placeholder="Search episode..."
+                                            value={epSearch}
+                                            onChange={(e) => setEpSearch(e.target.value)}
+                                            className="w-full bg-dark-950 border border-dark-600 rounded-sm py-2 pl-9 pr-3 text-xs text-white placeholder-zinc-600 focus:border-brand-400 focus:outline-none"
+                                        />
+                                    </div>
+                                    {seasons.length > 1 && (
+                                        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-dark-600">
+                                            {seasons.map((season: any, idx: number) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => setSelectedSeasonIdx(idx)}
+                                                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap rounded-sm transition-colors border ${
+                                                        selectedSeasonIdx === idx 
+                                                        ? 'bg-brand-400 text-black border-brand-400' 
+                                                        : 'bg-dark-950 text-zinc-400 border-dark-600 hover:text-white'
+                                                    }`}
+                                                >
+                                                    {season.title}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             
