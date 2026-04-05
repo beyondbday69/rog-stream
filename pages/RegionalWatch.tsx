@@ -1,191 +1,30 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useApi } from '../services/api';
-import { LoaderCircle, AlertTriangle, ChevronLeft, List, Grid2X2, Search, Server, ChevronDown } from 'lucide-react';
+import { LoaderCircle, AlertTriangle, ChevronLeft, List, Grid2X2, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
-import Hls from 'hls.js';
-import Plyr from 'plyr';
-import 'plyr/dist/plyr.css';
 
 export const RegionalWatch: React.FC = () => {
     const { animeId, episodeNumber } = useParams<{ animeId: string, episodeNumber: string }>();
     const navigate = useNavigate();
     const [epSearch, setEpSearch] = useState('');
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-    const [isServersOpen, setIsServersOpen] = useState(false);
-    const [isLangsOpen, setIsLangsOpen] = useState(true);
-    const [selectedLanguage, setSelectedLanguage] = useState<string>('');
-    const [selectedServer, setSelectedServer] = useState<any>(null);
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const plyrRef = useRef<Plyr | null>(null);
-
-    const { data: response, isLoading, isError, error } = useApi<any>(
-        `https://hindiapi-green.vercel.app/api/v1/animelok/watch/${animeId}?ep=${episodeNumber}`
+    
+    // Fetch Anime Details for the sidebar
+    const { data: animeData, isLoading: isAnimeLoading, isError: isAnimeError, error: animeError } = useApi<any>(
+        `https://animesalt-api-lovat.vercel.app/api/anime/${animeId}`
     );
 
-    const watchData = response;
+    // Fetch Video Source if it's an episode
+    const isMovie = episodeNumber === 'movie';
+    const { data: epData, isLoading: isEpLoading, isError: isEpError, error: epError } = useApi<any>(
+        `https://animesalt-api-lovat.vercel.app/api/episode/${episodeNumber}`,
+        { enabled: !isMovie }
+    );
 
-    // Auto-select first server when data loads
-    useEffect(() => {
-        if (watchData?.servers && watchData.servers.length > 0) {
-            // Set initial language
-            const langs = Array.from(new Set(watchData.servers.map((s: any) => s.language || 'Unknown')));
-            const initialLang = (langs.includes('Hindi') ? 'Hindi' : langs[0]) as string;
-            setSelectedLanguage(initialLang);
-        }
-    }, [watchData]);
-
-    // Auto-select first server when language changes
-    useEffect(() => {
-        if (watchData?.servers && selectedLanguage) {
-            const filteredServers = watchData.servers.filter((s: any) => (s.language || 'Unknown') === selectedLanguage);
-            if (filteredServers.length > 0) {
-                // If current selected server is not in the new language, select first
-                if (!selectedServer || (selectedServer.language || 'Unknown') !== selectedLanguage) {
-                    // Fix localhost and handle potential double encoding
-                    const server = filteredServers[0];
-                    let url = server.url;
-                    if (url && url.includes('localhost:4000')) {
-                        url = url.replace('http://localhost:4000', 'https://hindiapi-green.vercel.app');
-                    }
-                    // Try to decode if it looks encoded
-                    try {
-                        if (url && url.includes('%')) {
-                            url = decodeURIComponent(url);
-                        }
-                    } catch (e) {
-                        console.error("Failed to decode server URL", e);
-                    }
-                    setSelectedServer({ ...server, url });
-                }
-            }
-        }
-    }, [selectedLanguage, watchData]);
-
-    // HLS Player Setup
-    useEffect(() => {
-        const video = videoRef.current;
-        if (!video || !selectedServer || !selectedServer.isM3U8) return;
-
-        let hls: Hls | null = null;
-
-        // Initialize Plyr if not already initialized
-        if (!plyrRef.current) {
-            plyrRef.current = new Plyr(video, {
-                controls: [
-                    'play-large', 'play', 'progress', 'current-time', 'duration', 
-                    'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'
-                ],
-                settings: ['captions', 'quality', 'speed', 'loop'],
-            });
-        }
-
-        if (Hls.isSupported()) {
-            const PROXY_BASE = 'https://hindiapi-green.vercel.app/api/v1/animelok/proxy?url=';
-
-            function rewriteM3u8(m3u8Text: string, baseUrl: string) {
-                const lines = m3u8Text.split('\n');
-                for (let i = 0; i < lines.length; i++) {
-                    let line = lines[i].trim();
-                    if (!line) continue;
-                    
-                    if (line.startsWith('#EXT-X-')) {
-                        // Rewrite URI="..."
-                        const uriMatch = line.match(/URI="([^"]+)"/);
-                        if (uriMatch) {
-                            const uri = uriMatch[1];
-                            if (!uri.startsWith('data:')) {
-                                try {
-                                    const absoluteUrl = new URL(uri, baseUrl).href;
-                                    const proxiedUrl = PROXY_BASE + encodeURIComponent(absoluteUrl);
-                                    lines[i] = line.replace(`URI="${uri}"`, `URI="${proxiedUrl}"`);
-                                } catch (e) {
-                                    console.error("Failed to parse URI", uri, e);
-                                }
-                            }
-                        }
-                    } else if (!line.startsWith('#')) {
-                        // It's a URL line
-                        try {
-                            const absoluteUrl = new URL(line, baseUrl).href;
-                            lines[i] = PROXY_BASE + encodeURIComponent(absoluteUrl);
-                        } catch (e) {
-                            console.error("Failed to parse URL", line, e);
-                        }
-                    }
-                }
-                return lines.join('\n');
-            }
-
-            class ProxyLoader extends Hls.DefaultConfig.loader {
-                constructor(config: any) {
-                    super(config);
-                    const originalLoad = this.load.bind(this);
-                    
-                    this.load = function (context: any, config: any, callbacks: any) {
-                        let originalUrl = context.url;
-                        
-                        if (originalUrl.startsWith(PROXY_BASE)) {
-                            // Extract the actual URL so we can resolve relative paths inside the m3u8
-                            const encodedUrl = originalUrl.substring(PROXY_BASE.length);
-                            originalUrl = decodeURIComponent(encodedUrl);
-                        } else {
-                            // Wrap the URL in the proxy
-                            context.url = PROXY_BASE + encodeURIComponent(originalUrl);
-                        }
-                        
-                        const onSuccess = callbacks.onSuccess;
-                        callbacks.onSuccess = function (response: any, stats: any, context: any, networkDetails: any) {
-                            // Check if the response is an m3u8 playlist
-                            if (typeof response.data === 'string' && response.data.includes('#EXTM3U')) {
-                                response.data = rewriteM3u8(response.data, originalUrl);
-                            }
-                            onSuccess(response, stats, context, networkDetails);
-                        };
-                        
-                        originalLoad(context, config, callbacks);
-                    };
-                }
-            }
-
-            hls = new Hls({
-                pLoader: ProxyLoader as any,
-                fLoader: ProxyLoader as any,
-            });
-            
-            // Wrap the initial URL in the proxy
-            const initialUrl = selectedServer.url.startsWith(PROXY_BASE) 
-                ? selectedServer.url 
-                : PROXY_BASE + encodeURIComponent(selectedServer.url);
-                
-            hls.loadSource(initialUrl);
-            hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                video.play().catch(e => console.log("Auto-play prevented", e));
-            });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = selectedServer.url;
-            video.addEventListener('loadedmetadata', () => {
-                video.play().catch(e => console.log("Auto-play prevented", e));
-            });
-        }
-
-        return () => {
-            if (hls) {
-                hls.destroy();
-            }
-        };
-    }, [selectedServer]);
-
-    // Cleanup Plyr on unmount
-    useEffect(() => {
-        return () => {
-            if (plyrRef.current) {
-                plyrRef.current.destroy();
-                plyrRef.current = null;
-            }
-        };
-    }, []);
+    const isLoading = isAnimeLoading || (isEpLoading && !isMovie);
+    const isError = isAnimeError || (isEpError && !isMovie);
+    const error = animeError || epError;
 
     if (isLoading) {
         return (
@@ -196,7 +35,7 @@ export const RegionalWatch: React.FC = () => {
         );
     }
 
-    if (isError || !watchData) {
+    if (isError || !animeData || !animeData.data) {
         return (
             <div className="min-h-screen bg-dark-950 flex flex-col items-center justify-center gap-6">
                 <AlertTriangle className="w-20 h-20 text-red-500 opacity-50" />
@@ -214,11 +53,22 @@ export const RegionalWatch: React.FC = () => {
         );
     }
 
-    const episodes = watchData.episodes || [];
+    const anime = animeData.data;
+    const episodes = anime.episodes || [];
+    
     const filteredEpisodes = episodes.filter((ep: any) => 
         ep.number.toString().includes(epSearch) || 
         (ep.title && ep.title.toLowerCase().includes(epSearch.toLowerCase()))
     );
+
+    let videoUrl = "";
+    if (isMovie) {
+        videoUrl = anime.movie_players && anime.movie_players.length > 0 ? anime.movie_players[0] : "";
+    } else {
+        videoUrl = epData?.data?.video_player || "";
+    }
+
+    const currentEpTitle = isMovie ? anime.title : (episodes.find((e: any) => e.id === episodeNumber)?.title || `Episode ${episodeNumber}`);
 
     return (
         <motion.div 
@@ -239,10 +89,10 @@ export const RegionalWatch: React.FC = () => {
                             <ChevronLeft className="w-3 h-3" /> Back to Anime
                         </button>
                         <h1 className="text-lg md:text-3xl font-bold tracking-tight text-white uppercase italic truncate max-w-2xl leading-tight">
-                            {watchData.title || `Episode ${episodeNumber}`}
+                            {currentEpTitle}
                         </h1>
                         <p className="text-zinc-500 text-[10px] md:text-xs font-mono">
-                            {watchData.animeTitle}
+                            {anime.title}
                         </p>
                     </div>
                     <div className="flex items-center gap-2 self-end md:self-auto">
@@ -260,142 +110,23 @@ export const RegionalWatch: React.FC = () => {
                         
                         {/* Player Container */}
                         <div className="w-full aspect-video bg-black border border-white/10 rounded-sm overflow-hidden relative shadow-2xl">
-                            {selectedServer ? (
-                                selectedServer.isM3U8 ? (
-                                    <video 
-                                        ref={videoRef}
-                                        crossOrigin="anonymous"
-                                        playsInline
-                                        className="w-full h-full"
-                                        poster={episodes.find((e: any) => e.number.toString() === episodeNumber)?.image}
-                                    />
-                                ) : (
-                                    <iframe 
-                                        src={selectedServer.url} 
-                                        className="w-full h-full border-none"
-                                        allowFullScreen
-                                    />
-                                )
+                            {videoUrl ? (
+                                <iframe 
+                                    src={videoUrl} 
+                                    className="w-full h-full border-none"
+                                    allowFullScreen
+                                />
                             ) : (
                                 <div className="absolute inset-0 flex items-center justify-center text-zinc-500 font-mono text-sm">
-                                    Select a server to start watching
+                                    No video source found for this {isMovie ? 'movie' : 'episode'}.
                                 </div>
                             )}
                         </div>
 
-                        {/* Languages & Servers List */}
-                        {watchData.servers && watchData.servers.length > 0 && (
-                            <div className="space-y-4">
-                                {/* Languages Drawer */}
-                                <div className="bg-dark-900 border border-dark-700 rounded-sm overflow-hidden">
-                                    <button 
-                                        onClick={() => setIsLangsOpen(!isLangsOpen)}
-                                        className="w-full flex items-center justify-between p-2 md:p-3 bg-dark-800 hover:bg-dark-700 transition-colors"
-                                    >
-                                        <h3 className="text-[10px] md:text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                                            <List className="w-3 h-3 md:w-4 md:h-4 text-brand-400" /> Languages
-                                        </h3>
-                                        <motion.div animate={{ rotate: isLangsOpen ? 180 : 0 }}>
-                                            <ChevronDown className="w-3 h-3 md:w-4 md:h-4 text-zinc-500" />
-                                        </motion.div>
-                                    </button>
-                                    <motion.div 
-                                        initial={false}
-                                        animate={{ height: isLangsOpen ? 'auto' : 0, opacity: isLangsOpen ? 1 : 0 }}
-                                        className="overflow-hidden"
-                                    >
-                                        <div className="p-2 md:p-3 flex flex-wrap gap-2">
-                                            {Array.from(new Set(watchData.servers.map((s: any) => s.language || 'Unknown'))).map((lang: any) => (
-                                                <button
-                                                    key={lang}
-                                                    onClick={() => setSelectedLanguage(lang)}
-                                                    className={`px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider transition-all border ${
-                                                        selectedLanguage === lang
-                                                        ? 'bg-brand-400 text-black border-brand-400'
-                                                        : 'bg-dark-800 border-dark-600 text-zinc-400 hover:border-brand-400/50'
-                                                    }`}
-                                                >
-                                                    {lang}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </motion.div>
-                                </div>
-
-                                {/* Servers Drawer */}
-                                <div className="bg-dark-900 border border-dark-700 rounded-sm overflow-hidden">
-                                    <button 
-                                        onClick={() => setIsServersOpen(!isServersOpen)}
-                                        className="w-full flex items-center justify-between p-2 md:p-3 bg-dark-800 hover:bg-dark-700 transition-colors"
-                                    >
-                                        <h3 className="text-[10px] md:text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                                            <Server className="w-3 h-3 md:w-4 md:h-4 text-brand-400" /> Servers ({selectedLanguage})
-                                        </h3>
-                                        <motion.div animate={{ rotate: isServersOpen ? 180 : 0 }}>
-                                            <ChevronDown className="w-3 h-3 md:w-4 md:h-4 text-zinc-500" />
-                                        </motion.div>
-                                    </button>
-                                    <motion.div 
-                                        initial={false}
-                                        animate={{ height: isServersOpen ? 'auto' : 0, opacity: isServersOpen ? 1 : 0 }}
-                                        className="overflow-hidden"
-                                    >
-                                        <div className="p-2 md:p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                                            {watchData.servers
-                                                .filter((s: any) => (s.language || 'Unknown') === selectedLanguage)
-                                                .map((server: any, idx: number) => {
-                                                    // Fix localhost and handle potential double encoding
-                                                    let serverUrl = server.url?.includes('localhost:4000') 
-                                                        ? server.url.replace('http://localhost:4000', 'https://hindiapi-green.vercel.app')
-                                                        : server.url;
-                                                    
-                                                    // Try to decode if it looks encoded
-                                                    try {
-                                                        if (serverUrl && serverUrl.includes('%')) {
-                                                            serverUrl = decodeURIComponent(serverUrl);
-                                                        }
-                                                    } catch (e) {
-                                                        console.error("Failed to decode server URL", e);
-                                                    }
-                                                        
-                                                    const isSelected = selectedServer?.url === serverUrl;
-                                                    
-                                                    return (
-                                                        <button
-                                                            key={idx}
-                                                            onClick={() => setSelectedServer({ ...server, url: serverUrl })}
-                                                            className={`flex flex-col items-start px-2 py-1.5 text-left rounded-sm transition-all border ${
-                                                                isSelected 
-                                                                ? 'bg-brand-400/10 border-brand-400' 
-                                                                : 'bg-dark-800 border-dark-600 hover:border-brand-400/50 hover:bg-dark-700'
-                                                            }`}
-                                                        >
-                                                            <div className="flex items-center gap-1 mb-0.5 w-full">
-                                                                <span className={`text-[10px] font-bold uppercase tracking-wider truncate ${isSelected ? 'text-brand-400' : 'text-zinc-300'}`}>
-                                                                    {server.name}
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex items-center gap-1 w-full">
-                                                                {server.tip && (
-                                                                    <span className={`text-[9px] font-mono truncate ${isSelected ? 'text-brand-400/80' : 'text-zinc-500'}`}>
-                                                                        {server.tip}
-                                                                    </span>
-                                                                )}
-                                                                {server.isM3U8 && (
-                                                                    <span className="ml-auto text-[8px] font-bold text-zinc-500 border border-zinc-700 px-0.5 rounded-sm">HLS</span>
-                                                                )}
-                                                            </div>
-                                                        </button>
-                                                    );
-                                                })}
-                                        </div>
-                                    </motion.div>
-                                </div>
-                            </div>
-                        )}
                     </div>
 
                     {/* Right Column: Episode List */}
+                    {!isMovie && (
                     <div className="w-full lg:w-[400px] flex-shrink-0">
                         <div className="bg-dark-900 border border-dark-700 flex flex-col rounded-sm overflow-hidden h-[450px] md:h-[600px] lg:h-[calc(100vh-140px)] lg:sticky lg:top-24 shadow-2xl">
                             
@@ -430,7 +161,7 @@ export const RegionalWatch: React.FC = () => {
                                     <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-500" />
                                     <input 
                                         type="text"
-                                        placeholder="Search episode number..."
+                                        placeholder="Search episode..."
                                         value={epSearch}
                                         onChange={(e) => setEpSearch(e.target.value)}
                                         className="w-full bg-dark-950 border border-dark-600 rounded-sm py-2 pl-9 pr-3 text-xs text-white placeholder-zinc-600 focus:border-brand-400 focus:outline-none"
@@ -444,11 +175,11 @@ export const RegionalWatch: React.FC = () => {
                                     viewMode === 'list' ? (
                                         <div className="space-y-1">
                                             {filteredEpisodes.map((ep: any) => {
-                                                const isActive = ep.number.toString() === episodeNumber;
+                                                const isActive = ep.id === episodeNumber;
                                                 return (
                                                     <Link 
-                                                        key={ep.number}
-                                                        to={`/regional/watch/${animeId}/${ep.number}`}
+                                                        key={ep.id}
+                                                        to={`/regional/watch/${animeId}/${ep.id}`}
                                                         className={`flex items-center gap-2 p-1.5 rounded-sm group transition-all duration-200 border-l-2 ${
                                                             isActive 
                                                             ? 'bg-brand-400/10 border-brand-400' 
@@ -475,11 +206,11 @@ export const RegionalWatch: React.FC = () => {
                                     ) : (
                                         <div className="grid grid-cols-5 md:grid-cols-4 lg:grid-cols-5 gap-2">
                                             {filteredEpisodes.map((ep: any) => {
-                                                const isActive = ep.number.toString() === episodeNumber;
+                                                const isActive = ep.id === episodeNumber;
                                                 return (
                                                     <Link 
-                                                        key={ep.number}
-                                                        to={`/regional/watch/${animeId}/${ep.number}`}
+                                                        key={ep.id}
+                                                        to={`/regional/watch/${animeId}/${ep.id}`}
                                                         className={`aspect-square flex flex-col items-center justify-center rounded-sm border transition-all duration-200 ${
                                                             isActive 
                                                             ? 'bg-brand-400 text-black border-brand-400 font-bold' 
@@ -501,6 +232,7 @@ export const RegionalWatch: React.FC = () => {
                             </div>
                         </div>
                     </div>
+                    )}
                 </div>
             </div>
         </motion.div>
