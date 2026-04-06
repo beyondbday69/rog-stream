@@ -28,7 +28,7 @@ export const Watch: React.FC = () => {
   const isLoading = isAnimeLoading || isEpisodesLoading;
   const error = animeError || episodesError;
 
-  const animeData = rawAnime ? {
+  const animeData = React.useMemo(() => rawAnime ? {
       ...rawAnime,
       id: rawAnime.anime?.info?.id || rawAnime.info?.id || rawAnime.id,
       title: rawAnime.anime?.info?.name || rawAnime.info?.name || rawAnime.title,
@@ -49,7 +49,7 @@ export const Watch: React.FC = () => {
           title: ep.name || ep.title,
           isFiller: ep.filler || ep.isFiller
       }))
-  } : null;
+  } : null, [rawAnime, rawEpisodes]);
 
   useEffect(() => {
     if (animeData && animeData.malID) {
