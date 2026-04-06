@@ -42,7 +42,7 @@ export const Watch: React.FC = () => {
       status: rawAnime.anime?.moreInfo?.Status || rawAnime.moreInfo?.['Status:'] || rawAnime.status,
       relatedAnime: rawAnime.relatedAnimes || rawAnime.relatedAnime || [],
       recommendations: rawAnime.recommendedAnimes || rawAnime.recommendations || [],
-      episodes: (rawEpisodes?.episodes || rawAnime.episodes || []).map((ep: any) => ({
+      episodes: (rawEpisodes?.episodes || (Array.isArray(rawAnime.episodes) ? rawAnime.episodes : [])).map((ep: any) => ({
           ...ep,
           id: ep.episodeId || ep.id,
           number: ep.episodeNo || ep.number,
@@ -72,7 +72,7 @@ export const Watch: React.FC = () => {
     const saveProgress = async () => {
         if (animeData && episodeNumber && user) {
             const episodes = animeData.episodes || [];
-            const currentEp = episodes.find((e: Episode) => e.number.toString() === episodeNumber);
+            const currentEp = episodes.find((e: Episode) => e.number?.toString() === episodeNumber);
             
             if (currentEp) {
                 const historyItem: HistoryItem = {
@@ -131,7 +131,7 @@ export const Watch: React.FC = () => {
   }
 
   const episodes = animeData.episodes || [];
-  const currentEpIndex = episodes.findIndex((e: Episode) => e.number.toString() === episodeNumber);
+  const currentEpIndex = episodes.findIndex((e: Episode) => e.number?.toString() === episodeNumber);
   const currentEp = episodes[currentEpIndex];
   
   const prevEp = episodes[currentEpIndex - 1];
@@ -155,7 +155,7 @@ export const Watch: React.FC = () => {
   }, [duration, nextEp, episodeNumber]);
 
   const filteredEpisodes = episodes.filter((ep: Episode) => 
-      ep.number.toString().includes(epSearch) || 
+      ep.number?.toString().includes(epSearch) || 
       (ep.title && ep.title.toLowerCase().includes(epSearch.toLowerCase()))
   );
 

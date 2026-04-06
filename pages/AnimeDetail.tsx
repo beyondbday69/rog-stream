@@ -130,7 +130,7 @@ export const AnimeDetail: React.FC = () => {
       relatedAnime: rawAnime.relatedAnimes || rawAnime.relatedAnime || [],
       recommendations: rawAnime.recommendedAnimes || rawAnime.recommendations || [],
       seasons: rawAnime.seasons || [],
-      episodes: (rawEpisodes?.episodes || rawAnime.episodes || []).map((ep: any) => ({
+      episodes: (rawEpisodes?.episodes || (Array.isArray(rawAnime.episodes) ? rawAnime.episodes : [])).map((ep: any) => ({
           ...ep,
           id: ep.episodeId || ep.id,
           number: ep.episodeNo || ep.number,
