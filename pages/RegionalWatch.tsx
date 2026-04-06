@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useApi } from '../services/api';
-import { LoaderCircle, AlertTriangle, ChevronLeft, List, Grid2X2, Search } from 'lucide-react';
+import { LoaderCircle, AlertTriangle, ChevronLeft, List, Grid2X2, Search, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const RegionalWatch: React.FC = () => {
@@ -124,6 +124,16 @@ export const RegionalWatch: React.FC = () => {
                         </p>
                     </div>
                     <div className="flex items-center gap-2 self-end md:self-auto">
+                        <div 
+                            className="flex items-center gap-1.5 md:gap-2 px-2 py-1 bg-brand-400/10 border border-brand-400/30 rounded-sm" 
+                            title="Ad & Redirect Shield is Always ON"
+                        >
+                            <ShieldCheck className="w-3 h-3 md:w-3.5 md:h-3.5 text-brand-400" />
+                            <span className="text-brand-400 text-[8px] md:text-[9px] font-bold uppercase tracking-widest hidden sm:block">No Redirects</span>
+                            <div className="w-5 h-2.5 md:w-6 md:h-3 bg-brand-400/30 rounded-full relative flex items-center ml-1">
+                                <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-brand-400 rounded-full absolute right-0 shadow-[0_0_5px_rgba(255,0,51,0.8)]"></div>
+                            </div>
+                        </div>
                         <span className="text-brand-400 text-[9px] md:text-[10px] font-bold uppercase border border-brand-400/30 px-2 py-1 bg-brand-400/10 rounded-sm">
                             REGIONAL
                         </span>
