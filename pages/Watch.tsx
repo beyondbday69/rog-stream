@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useApi, constructUrl } from '../services/api';
-import { AnimeDetail, Episode, HistoryItem, Anime } from '../types';
-import { LoaderCircle, AlertTriangle, ChevronLeft, Play, X, Grid2X2, List, Search, LayoutTemplate, ShieldCheck } from 'lucide-react';
+import { Episode, HistoryItem, Anime } from '../types';
+import { LoaderCircle, AlertTriangle, ChevronLeft, List, Grid2X2, Search, ShieldCheck } from 'lucide-react';
 import { VideoPlayer } from '../components/VideoPlayer';
 import { AnimeCard } from '../components/AnimeCard';
 import { useAuth } from '../context/AuthContext';
@@ -17,7 +17,9 @@ export const Watch: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [duration, setDuration] = useState<number | null>(null);
 
-  // Redirect if params are missing (prevent being stuck in loading/error states)
+  // 1. All Hooks MUST be at the top level
+  
+  // Redirect if params are missing
   useEffect(() => {
     if (!animeId || !episodeNumber) {
       navigate('/');
@@ -32,12 +34,8 @@ export const Watch: React.FC = () => {
       animeId ? constructUrl('episodes', { id: animeId }) : ''
   );
 
-  const isLoading = isAnimeLoading || isEpisodesLoading;
-  const error = animeError || episodesError;
-
-  const animeData = React.useMemo(() => {
+  const animeData = useMemo(() => {
     if (!rawAnime) return null;
-    
     return {
       ...rawAnime,
       id: rawAnime.anime?.info?.id || rawAnime.info?.id || rawAnime.id,
@@ -49,7 +47,7 @@ export const Watch: React.FC = () => {
       malID: rawAnime.anime?.info?.mal_id || rawAnime.info?.mal_id || rawAnime.malID,
       malScore: rawAnime.anime?.moreInfo?.['MAL Score'] || rawAnime.moreInfo?.['MAL Score:'] || rawAnime.malScore,
       genres: rawAnime.anime?.moreInfo?.Genres || rawAnime.moreInfo?.Genres || rawAnime.genres,
-      status: rawAnime.anime?.moreInfo?.Status || rawAnime.moreInfo?.['Status:'] || rawAnime.status,
+      status: rawAnime.anime?.moreInfo?.Status || rawAnime.moreInfo?.Status || rawAnime.status,
       relatedAnime: rawAnime.relatedAnimes || rawAnime.relatedAnime || [],
       recommendations: rawAnime.recommendedAnimes || rawAnime.recommendations || [],
       episodes: (rawEpisodes?.episodes || (Array.isArray(rawAnime.episodes) ? rawAnime.episodes : [])).map((ep: any) => ({
@@ -62,8 +60,22 @@ export const Watch: React.FC = () => {
     };
   }, [rawAnime, rawEpisodes]);
 
+  const episodes = useMemo(() => animeData?.episodes || [], [animeData]);
+  const currentEpIndex = useMemo(() => episodes.findIndex((e: Episode) => e.number?.toString() === episodeNumber), [episodes, episodeNumber]);
+  const currentEp = episodes[currentEpIndex];
+  const prevEp = episodes[currentEpIndex - 1];
+  const nextEp = episodes[currentEpIndex + 1];
+
+  const handleNavigate = (direction: 'prev' | 'next') => {
+      if (direction === 'prev' && prevEp) {
+          navigate(`/watch/${animeId}/${prevEp.number}`);
+      } else if (direction === 'next' && nextEp) {
+          navigate(`/watch/${animeId}/${nextEp.number}`);
+      }
+  };
+
   useEffect(() => {
-    if (animeData && animeData.malID) {
+    if (animeData?.malID) {
         fetch(`https://api.jikan.moe/v4/anime/${animeData.malID}`)
             .then(res => res.json())
             .then(data => {
@@ -76,41 +88,55 @@ export const Watch: React.FC = () => {
             })
             .catch(err => console.error("Failed to fetch duration", err));
     }
-  }, [animeData?.malID]); // Only re-run if malID changes
+  }, [animeData?.malID]);
 
   useEffect(() => {
     const saveProgress = async () => {
-        if (animeData && episodeNumber && user) {
-            const episodes = animeData.episodes || [];
-            const currentEp = episodes.find((e: Episode) => e.number?.toString() === episodeNumber);
-            
-            if (currentEp) {
-                const historyItem: HistoryItem = {
-                    animeId: animeId || '',
-                    episodeId: currentEp.id,
-                    title: animeData.title,
-                    episodeNumber: currentEp.number,
-                    image: animeData.banner || animeData.image || animeData.poster || '',
-                    timestamp: Date.now()
-                };
+        if (animeData && episodeNumber && user && currentEp) {
+            const historyItem: HistoryItem = {
+                animeId: animeId || '',
+                episodeId: currentEp.id,
+                title: animeData.title,
+                episodeNumber: currentEp.number,
+                image: animeData.banner || animeData.image || '',
+                timestamp: Date.now()
+            };
 
-                try {
-                  await saveUserHistory(user.uid, historyItem);
-                  await saveAnimeProgress(user.uid, animeData, currentEp);
-                } catch (error) {
-                  console.error("Failed to save user progress to the cloud:", error);
-                }
+            try {
+              await saveUserHistory(user.uid, historyItem);
+              await saveAnimeProgress(user.uid, animeData, currentEp);
+            } catch (error) {
+              console.error("Failed to save user progress:", error);
             }
         }
     };
     saveProgress();
-  }, [animeData?.id, episodeNumber, animeId, user]);
+  }, [animeData?.id, episodeNumber, animeId, user, currentEp]);
   
-  // Scroll to top on new episode
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [episodeNumber]);
 
+  useEffect(() => {
+    if (duration && nextEp) {
+        const timer = setTimeout(() => {
+            handleNavigate('next');
+        }, duration - 5000);
+        return () => clearTimeout(timer);
+    }
+  }, [duration, nextEp, episodeNumber]);
+
+  const filteredEpisodes = useMemo(() => episodes.filter((ep: Episode) => 
+      ep.number?.toString().includes(epSearch) || 
+      (ep.title && ep.title.toLowerCase().includes(epSearch.toLowerCase()))
+  ), [episodes, epSearch]);
+
+  const recommendations = useMemo(() => [...(animeData?.relatedAnime || []), ...(animeData?.recommendations || [])], [animeData]);
+
+  // 2. Conditional Rendering AFTER all hooks
+
+  const isLoading = isAnimeLoading || isEpisodesLoading;
+  const error = animeError || episodesError;
 
   if (isLoading) {
     return (
@@ -121,7 +147,7 @@ export const Watch: React.FC = () => {
     );
   }
 
-  if (error || !animeData || !animeData.episodes) {
+  if (error || !animeData || episodes.length === 0) {
       return (
         <div className="min-h-screen bg-dark-950 flex flex-col items-center justify-center gap-6">
             <AlertTriangle className="w-20 h-20 text-red-500 opacity-50" />
@@ -140,35 +166,6 @@ export const Watch: React.FC = () => {
       );
   }
 
-  const episodes = animeData.episodes || [];
-  const currentEpIndex = episodes.findIndex((e: Episode) => e.number?.toString() === episodeNumber);
-  const currentEp = episodes[currentEpIndex];
-  
-  const prevEp = episodes[currentEpIndex - 1];
-  const nextEp = episodes[currentEpIndex + 1];
-
-  const handleNavigate = (direction: 'prev' | 'next') => {
-      if (direction === 'prev' && prevEp) {
-          navigate(`/watch/${animeId}/${prevEp.number}`);
-      } else if (direction === 'next' && nextEp) {
-          navigate(`/watch/${animeId}/${nextEp.number}`);
-      }
-  };
-
-  useEffect(() => {
-    if (duration && nextEp) {
-        const timer = setTimeout(() => {
-            handleNavigate('next');
-        }, duration - 5000); // Trigger 5 seconds before end
-        return () => clearTimeout(timer);
-    }
-  }, [duration, nextEp, episodeNumber]);
-
-  const filteredEpisodes = episodes.filter((ep: Episode) => 
-      ep.number?.toString().includes(epSearch) || 
-      (ep.title && ep.title.toLowerCase().includes(epSearch.toLowerCase()))
-  );
-
   if (!currentEp) {
       return (
           <div className="min-h-screen bg-dark-950 flex items-center justify-center text-white flex-col gap-4">
@@ -177,8 +174,6 @@ export const Watch: React.FC = () => {
           </div>
       );
   }
-
-  const recommendations = [...(animeData.relatedAnime || []), ...(animeData.recommendations || [])];
 
   return (
     <motion.div 
@@ -189,7 +184,6 @@ export const Watch: React.FC = () => {
     >
       <div className="max-w-[1800px] mx-auto w-full px-2 md:px-6">
         
-        {/* Header Navigation - Mobile optimized */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-6 gap-2 border-b border-dark-700 pb-2 md:pb-4">
              <div>
                 <button 
@@ -222,13 +216,8 @@ export const Watch: React.FC = () => {
              </div>
         </div>
 
-        {/* Layout Container */}
         <div className="flex flex-col gap-6 lg:gap-8">
-            
-            {/* Top Section: Player & List */}
             <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
-                
-                {/* Left Column: Video Player */}
                 <div className="flex-1 min-w-0">
                     <VideoPlayer 
                         key={episodeNumber}
@@ -240,18 +229,14 @@ export const Watch: React.FC = () => {
                     />
                 </div>
 
-                {/* Right Column: Episode List */}
                 <div className="w-full lg:w-[400px] flex-shrink-0">
                      <div className="bg-dark-900 border border-dark-700 flex flex-col rounded-sm overflow-hidden h-[450px] md:h-[600px] lg:h-[calc(100vh-140px)] lg:sticky lg:top-24 shadow-2xl">
-                         
-                         {/* List Header */}
                          <div className="p-3 md:p-4 bg-dark-800 border-b border-dark-700 space-y-3">
                              <div className="flex justify-between items-center">
                                  <h3 className="font-bold text-white uppercase tracking-wider text-sm flex items-center gap-2">
                                     <List className="w-4 h-4 text-brand-400" /> Episodes
                                  </h3>
                                  <div className="flex items-center gap-2">
-                                     {/* View Toggles */}
                                      <div className="flex bg-dark-950 rounded-sm border border-dark-700 p-0.5">
                                         <button 
                                             onClick={() => setViewMode('list')}
@@ -273,7 +258,6 @@ export const Watch: React.FC = () => {
                                      </span>
                                  </div>
                              </div>
-                             {/* Search Box */}
                              <div className="relative">
                                  <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-500" />
                                  <input 
@@ -286,14 +270,12 @@ export const Watch: React.FC = () => {
                              </div>
                          </div>
                          
-                         {/* List Content */}
                          <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-brand-400/20 scrollbar-track-dark-900 p-2">
                             {filteredEpisodes.length > 0 ? (
                                 viewMode === 'list' ? (
-                                    // List View
                                     <div className="space-y-1">
                                         {filteredEpisodes.map((ep: Episode) => {
-                                            const isActive = ep.number.toString() === episodeNumber;
+                                            const isActive = ep.number?.toString() === episodeNumber;
                                             return (
                                                 <Link 
                                                     key={ep.id}
@@ -328,10 +310,9 @@ export const Watch: React.FC = () => {
                                         })}
                                     </div>
                                 ) : (
-                                    // Grid View
                                     <div className="grid grid-cols-5 md:grid-cols-4 lg:grid-cols-5 gap-2">
                                         {filteredEpisodes.map((ep: Episode) => {
-                                            const isActive = ep.number.toString() === episodeNumber;
+                                            const isActive = ep.number?.toString() === episodeNumber;
                                             return (
                                                 <Link 
                                                     key={ep.id}
@@ -360,7 +341,6 @@ export const Watch: React.FC = () => {
                 </div>
             </div>
 
-            {/* Bottom Section: Recommendations */}
             {recommendations.length > 0 && (
                 <div className="pt-6 border-t border-dark-700">
                     <h2 className="text-lg md:text-xl font-black text-white uppercase italic tracking-tighter mb-4 md:mb-6 border-l-4 border-zinc-600 pl-4">
