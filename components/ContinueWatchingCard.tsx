@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApi, constructUrl } from '../services/api';
 import { UserProgress } from '../services/firebase';
 import { AnimeDetail } from '../types';
 import { ContinueWatchingCardSkeleton } from './Skeletons';
 import { Play } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface ContinueWatchingCardProps {
   progress: UserProgress;
 }
 
 export const ContinueWatchingCard: React.FC<ContinueWatchingCardProps> = ({ progress }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
   // Fetch fresh details for the anime to ensure poster/title are up to date
   const { data: anime, isLoading } = useApi<AnimeDetail>(
     constructUrl('details', { id: progress.animeId })
@@ -36,7 +38,11 @@ export const ContinueWatchingCard: React.FC<ContinueWatchingCardProps> = ({ prog
     <div className="w-[280px] md:w-[320px] flex-shrink-0 group snap-start relative">
       <Link to={watchLink} className="block">
         <div className="relative aspect-video bg-dark-800 overflow-hidden rounded-sm border border-white/5 group-hover:border-brand-400/50 transition-all">
-          <img
+          <motion.img
+            initial={{ clipPath: 'inset(0 100% 0 0)' }}
+            animate={{ clipPath: isLoaded ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)' }}
+            transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            onLoad={() => setIsLoaded(true)}
             src={posterImage}
             alt={animeTitle}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"

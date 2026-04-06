@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Anime } from '../types';
 import { Play, MoreVertical } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface AnimeCardProps {
   anime: Anime;
@@ -12,6 +13,8 @@ interface AnimeCardProps {
 }
 
 export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, rank, variant = 'portrait', layout = 'row', isRegional = false }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  
   if (!anime) return null;
 
   const isDub = anime.episodes?.dub && anime.episodes.dub > 0;
@@ -39,7 +42,11 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, rank, variant = 'po
         <Link to={linkPath} className="block">
           {/* Thumbnail Container */}
           <div className="relative aspect-video bg-dark-800 overflow-hidden rounded-sm border border-white/5 group-hover/card:border-brand-400/50 transition-all">
-            <img
+            <motion.img
+              initial={{ clipPath: 'inset(0 100% 0 0)' }}
+              animate={{ clipPath: isLoaded ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)' }}
+              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+              onLoad={() => setIsLoaded(true)}
               src={anime.banner || anime.image || anime.poster || anime.img}
               alt={anime.title || anime.name}
               className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
@@ -89,7 +96,11 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, rank, variant = 'po
         {/* Card Container */}
         <div className="relative aspect-[2/3] overflow-hidden bg-dark-800 mb-2 md:mb-3 transition-all duration-300 rounded-sm group-hover/card:shadow-[0_0_20px_rgba(246,195,67,0.1)]">
           
-          <img
+          <motion.img
+            initial={{ clipPath: 'inset(0 100% 0 0)' }}
+            animate={{ clipPath: isLoaded ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)' }}
+            transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            onLoad={() => setIsLoaded(true)}
             src={anime.poster || anime.image || anime.img} 
             alt={anime.title || anime.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
