@@ -75,6 +75,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           frameBorder="0"
           allow="autoplay; fullscreen"
           title="Anime Stream"
+          sandbox="allow-scripts allow-same-origin allow-forms"
         ></iframe>
       </div>
 

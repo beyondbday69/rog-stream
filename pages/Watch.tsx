@@ -221,6 +221,7 @@ export const Watch: React.FC = () => {
                 {/* Left Column: Video Player */}
                 <div className="flex-1 min-w-0">
                     <VideoPlayer 
+                        key={episodeNumber}
                         episodeId={currentEp.id}
                         currentEp={currentEp}
                         changeEpisode={handleNavigate}

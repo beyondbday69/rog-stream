@@ -79,14 +79,14 @@ export const RegionalWatch: React.FC = () => {
         );
     }
 
-    const anime = animeData;
+    const anime = animeData || {};
     const episodes = anime.episodes || [];
     
-    const activeSeasonEps = seasons[selectedSeasonIdx]?.episodes || [];
+    const activeSeasonEps = seasons && seasons[selectedSeasonIdx] ? seasons[selectedSeasonIdx].episodes : [];
     
     const filteredEpisodes = activeSeasonEps.filter((ep: any) => 
-        ep.number.toString().includes(epSearch) || 
-        (ep.title && ep.title.toLowerCase().includes(epSearch.toLowerCase()))
+        ep && ep.number && (ep.number.toString().includes(epSearch) || 
+        (ep.title && ep.title.toLowerCase().includes(epSearch.toLowerCase())))
     );
 
     let videoUrl = "";
@@ -96,7 +96,8 @@ export const RegionalWatch: React.FC = () => {
         videoUrl = epData?.video_player || "";
     }
 
-    const currentEpTitle = isMovie ? anime.title : (episodes.find((e: any) => e.id === episodeNumber)?.title || `Episode ${episodeNumber}`);
+    const currentEp = episodes.find((e: any) => e.id === episodeNumber);
+    const currentEpTitle = isMovie ? (anime.title || 'Movie') : (currentEp?.title || `Episode ${episodeNumber}`);
 
     return (
         <motion.div 
@@ -150,9 +151,11 @@ export const RegionalWatch: React.FC = () => {
                         <div className="w-full aspect-video bg-black border border-white/10 rounded-sm overflow-hidden relative shadow-2xl">
                             {videoUrl ? (
                                 <iframe 
+                                    key={episodeNumber}
                                     src={videoUrl} 
                                     className="w-full h-full border-none"
                                     allowFullScreen
+                                    sandbox="allow-scripts allow-same-origin allow-forms"
                                 />
                             ) : (
                                 <div className="absolute inset-0 flex items-center justify-center text-zinc-500 font-mono text-sm">
