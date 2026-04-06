@@ -39,9 +39,9 @@ export const ContinueWatchingCard: React.FC<ContinueWatchingCardProps> = ({ prog
       <Link to={watchLink} className="block">
         <div className="relative aspect-video bg-dark-800 overflow-hidden rounded-sm border border-white/5 group-hover:border-brand-400/50 transition-all">
           <motion.img
-            initial={{ clipPath: 'inset(0 100% 0 0)' }}
-            animate={{ clipPath: isLoaded ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)' }}
-            transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isLoaded ? 1 : 0 }}
+            transition={{ duration: 0.6 }}
             onLoad={() => setIsLoaded(true)}
             src={posterImage}
             alt={animeTitle}

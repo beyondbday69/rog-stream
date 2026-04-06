@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Anime } from '../types';
 import { Play, MoreVertical } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 interface AnimeCardProps {
   anime: Anime;
@@ -35,19 +35,24 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, rank, variant = 'po
         : 'w-[105px] sm:w-[150px] md:w-[200px]';
   }
 
+  const imageUrl = variant === 'landscape' 
+    ? (anime.banner || anime.image || anime.poster || anime.img)
+    : (anime.poster || anime.image || anime.img);
+
+  const linkPath = isRegional ? `/regional/anime/${encodeURIComponent(anime.id)}` : `/anime/${encodeURIComponent(anime.id)}`;
+
   if (variant === 'landscape') {
-    const linkPath = isRegional ? `/regional/anime/${encodeURIComponent(anime.id)}` : `/anime/${encodeURIComponent(anime.id)}`;
     return (
       <div className={`${widthClass} flex-shrink-0 group/card relative`}>
         <Link to={linkPath} className="block">
           {/* Thumbnail Container */}
           <div className="relative aspect-video bg-dark-800 overflow-hidden rounded-sm border border-white/5 group-hover/card:border-brand-400/50 transition-all">
             <motion.img
-              initial={{ clipPath: 'inset(0 100% 0 0)' }}
-              animate={{ clipPath: isLoaded ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)' }}
-              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: isLoaded ? 1 : 0 }}
+              transition={{ duration: 0.6 }}
               onLoad={() => setIsLoaded(true)}
-              src={anime.banner || anime.image || anime.poster || anime.img}
+              src={imageUrl}
               alt={anime.title || anime.name}
               className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
               loading="lazy"
@@ -89,7 +94,6 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, rank, variant = 'po
   }
 
   // Portrait Mode (Default)
-  const linkPath = isRegional ? `/regional/anime/${encodeURIComponent(anime.id)}` : `/anime/${anime.id}`;
   return (
     <div className={`${widthClass} flex-shrink-0 group/card relative`}>
       <Link to={linkPath} className="block relative">
@@ -97,11 +101,11 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({ anime, rank, variant = 'po
         <div className="relative aspect-[2/3] overflow-hidden bg-dark-800 mb-2 md:mb-3 transition-all duration-300 rounded-sm group-hover/card:shadow-[0_0_20px_rgba(246,195,67,0.1)]">
           
           <motion.img
-            initial={{ clipPath: 'inset(0 100% 0 0)' }}
-            animate={{ clipPath: isLoaded ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)' }}
-            transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isLoaded ? 1 : 0 }}
+            transition={{ duration: 0.6 }}
             onLoad={() => setIsLoaded(true)}
-            src={anime.poster || anime.image || anime.img} 
+            src={imageUrl} 
             alt={anime.title || anime.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
             loading="lazy"
