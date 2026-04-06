@@ -78,28 +78,11 @@ export const Navbar: React.FC = () => {
         <div className="relative z-30 max-w-[1600px] mx-auto px-3 md:px-8 h-full pointer-events-auto">
           <div className="flex items-center h-full gap-3 md:gap-8">
             
-            {/* Left: Logo & Nav */}
-            <div className="hidden md:flex items-center gap-12 flex-shrink-0">
-              
-              {/* Logo */}
+            {/* Left: Logo */}
+            <div className="flex items-center flex-shrink-0">
               <Link to="/" className="text-white hover:text-brand-400 transition-colors transform hover:scale-110 duration-200 block">
                 <Home className="w-6 h-6 md:w-8 md:h-8" strokeWidth={2.5} />
               </Link>
-
-              {/* Desktop Navigation */}
-              <div className="hidden lg:flex items-center gap-1">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.name}
-                    to={link.path}
-                    className={`relative px-6 py-2 text-sm font-bold uppercase tracking-wider transition-all skew-x-[-12deg] border-l-2 border-transparent hover:border-brand-400 hover:bg-brand-400/10 ${
-                      isActive(link.path) ? 'text-brand-400 border-brand-400 bg-brand-400/10 shadow-[inset_0_0_10px_rgba(255,0,51,0.2)]' : 'text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    <span className="block skew-x-[12deg]">{link.name}</span>
-                  </Link>
-                ))}
-              </div>
             </div>
 
             {/* Center: Search */}
@@ -121,55 +104,11 @@ export const Navbar: React.FC = () => {
               </form>
             </div>
 
-            {/* Right: Actions */}
-            <div className="flex items-center gap-2 md:gap-6 flex-shrink-0 ml-auto md:ml-0">
-              
-              {/* Desktop Icons */}
-              <div className="hidden md:flex items-center gap-6">
-                
-                {/* Benefits Link for Guests */}
-                {!user && (
-                  <Link to="/benefits" className="flex items-center gap-2 text-amber-400 hover:text-amber-200 transition-colors text-xs font-bold uppercase tracking-wider">
-                      <Crown className="w-4 h-4" /> Go Pro
-                  </Link>
-                )}
-
-                <button className="text-zinc-400 hover:text-brand-400 transition-colors relative group">
-                    <BellRing className="w-5 h-5 group-hover:animate-ping absolute opacity-30" />
-                    <BellRing className="w-5 h-5 relative z-10" />
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-brand-400 rounded-none rotate-45 shadow-[0_0_5px_#ff0033]" />
-                </button>
-                <Link to="/admin" className="text-zinc-400 hover:text-brand-400 transition-colors">
-                   <Settings2 className="w-5 h-5 hover:rotate-180 transition-transform duration-700" />
-                </Link>
-                
-                {user ? (
-                   <div className="flex items-center gap-3">
-                      <Link to="/profile" className="flex flex-col items-end mr-1 hover:opacity-80 transition-opacity group">
-                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-hover:text-brand-400">Profile</span>
-                          <span className="text-xs font-bold text-white uppercase">{user.email?.split('@')[0]}</span>
-                      </Link>
-                      <button 
-                        onClick={logout}
-                        className="bg-zinc-800 hover:bg-brand-400 text-white hover:text-black p-2 transition-all skew-x-[-12deg]"
-                        title="Logout"
-                      >
-                         <LogOut className="w-4 h-4 skew-x-[12deg]" />
-                      </button>
-                   </div>
-                ) : (
-                  <Link to="/login" className="flex items-center gap-2 bg-brand-400 hover:bg-white text-black px-6 py-2 text-xs font-black uppercase tracking-widest transition-all skew-x-[-12deg] clip-path-polygon hover:scale-105 shadow-[0_0_15px_rgba(255,0,51,0.4)]">
-                      <span className="skew-x-[12deg] flex items-center gap-2">
-                          <CircleUser className="w-4 h-4" /> Login
-                      </span>
-                  </Link>
-                )}
-              </div>
-
-              {/* Mobile Toggle */}
+            {/* Right: Hamburger Menu (Visible on all devices) */}
+            <div className="flex items-center gap-2 flex-shrink-0">
               <button 
                 onClick={() => setIsMobileOpen(true)}
-                className="lg:hidden text-white p-1.5 md:p-2 hover:text-brand-400 transition-colors border border-white/10 bg-white/5 skew-x-[-10deg]"
+                className="flex text-white p-1.5 md:p-2 hover:text-brand-400 transition-colors border border-white/10 bg-white/5 skew-x-[-10deg]"
               >
                 <AlignRight className="w-5 h-5 md:w-6 md:h-6 skew-x-[10deg]" />
               </button>
@@ -188,7 +127,7 @@ export const Navbar: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileOpen(false)}
-              className="fixed inset-0 bg-black/90 z-50 lg:hidden"
+              className="fixed inset-0 bg-black/90 z-50"
             />
             
             {/* Drawer */}
@@ -197,7 +136,7 @@ export const Navbar: React.FC = () => {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-black border-l-2 border-brand-400 z-50 lg:hidden shadow-[0_0_50px_rgba(255,0,51,0.3)] overflow-y-auto"
+              className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-black border-l-2 border-brand-400 z-50 shadow-[0_0_50px_rgba(255,0,51,0.3)] overflow-y-auto"
             >
               <div className="p-6 relative">
                 {/* Decorative Elements */}
