@@ -17,6 +17,13 @@ export const Watch: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [duration, setDuration] = useState<number | null>(null);
 
+  // Redirect if params are missing (prevent being stuck in loading/error states)
+  useEffect(() => {
+    if (!animeId || !episodeNumber) {
+      navigate('/');
+    }
+  }, [animeId, episodeNumber, navigate]);
+
   const { data: rawAnime, isLoading: isAnimeLoading, error: animeError } = useApi<any>(
       animeId ? constructUrl('details', { id: animeId }) : ''
   );
@@ -28,7 +35,10 @@ export const Watch: React.FC = () => {
   const isLoading = isAnimeLoading || isEpisodesLoading;
   const error = animeError || episodesError;
 
-  const animeData = React.useMemo(() => rawAnime ? {
+  const animeData = React.useMemo(() => {
+    if (!rawAnime) return null;
+    
+    return {
       ...rawAnime,
       id: rawAnime.anime?.info?.id || rawAnime.info?.id || rawAnime.id,
       title: rawAnime.anime?.info?.name || rawAnime.info?.name || rawAnime.title,
@@ -49,7 +59,8 @@ export const Watch: React.FC = () => {
           title: ep.name || ep.title,
           isFiller: ep.filler || ep.isFiller
       }))
-  } : null, [rawAnime, rawEpisodes]);
+    };
+  }, [rawAnime, rawEpisodes]);
 
   useEffect(() => {
     if (animeData && animeData.malID) {
@@ -57,7 +68,6 @@ export const Watch: React.FC = () => {
             .then(res => res.json())
             .then(data => {
                 if (data.data && data.data.duration) {
-                    // Duration is usually "24 min per ep"
                     const match = data.data.duration.match(/(\d+)/);
                     if (match) {
                         setDuration(parseInt(match[1]) * 60 * 1000);
@@ -66,7 +76,7 @@ export const Watch: React.FC = () => {
             })
             .catch(err => console.error("Failed to fetch duration", err));
     }
-  }, [animeData]);
+  }, [animeData?.malID]); // Only re-run if malID changes
 
   useEffect(() => {
     const saveProgress = async () => {
@@ -94,7 +104,7 @@ export const Watch: React.FC = () => {
         }
     };
     saveProgress();
-  }, [animeData, episodeNumber, animeId, user]);
+  }, [animeData?.id, episodeNumber, animeId, user]);
   
   // Scroll to top on new episode
   useEffect(() => {
