@@ -326,6 +326,7 @@ export const Home: React.FC = () => {
       transition={{ duration: 0.5 }}
       className="min-h-screen pb-20 bg-dark-950"
     >
+      <h1 className="sr-only">ROG Stream - Watch Free Anime Online Without Ads</h1>
       
       {/* Hero Section - Hidden on mobile */}
       <div className="hidden md:block">

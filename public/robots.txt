@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Sitemap Location
+Sitemap: https://rog-stream.vercel.app/sitemap.xml
+
+# Disallow admin and private pages
+Disallow: /admin
+Disallow: /login
+Disallow: /profile
+Disallow: /history

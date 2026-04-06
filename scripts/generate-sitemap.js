@@ -7,21 +7,22 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Constants
-const API_URL = 'https://backendweb-ivory.vercel.app/api/v1/home'; // Main data source
+const API_URL = 'https://animesalt-api-lovat.vercel.app/api/home'; 
 const BASE_URL = 'https://rog-stream.vercel.app';
 
 // Static Routes to always include
 const STATIC_ROUTES = [
   '/',
-  '/login',
+  '/regional',
+  '/trending',
+  '/genres',
+  '/schedule',
+  '/history',
   '/profile',
+  '/login',
   '/benefits',
   '/documentation',
   '/api-docs',
-  '/schedule',
-  '/search',
-  '/genres',
-  '/admin',
   '/animes/trending',
   '/animes/top-airing',
   '/animes/most-popular',
@@ -32,40 +33,36 @@ async function generateSitemap() {
   console.log('🗺️  Starting Sitemap Generation...');
 
   try {
-    // 1. Fetch Dynamic Data from API
+    // 1. Fetch Dynamic Data from AnimeSalt API
     console.log(`📡 Fetching data from ${API_URL}...`);
     const response = await fetch(API_URL);
-    const json = await response.json();
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
     
-    // The API returns data in { success: true, data: { ... } } format
+    const json = await response.json();
     const data = json.data || {};
     
-    // Use a Map to ensure unique Anime IDs
-    const animeSet = new Map();
+    // Use a Set to ensure unique Slugs/IDs
+    const animeIds = new Set();
 
-    const processAnimeList = (list) => {
+    const processList = (list) => {
       if (Array.isArray(list)) {
-        list.forEach(anime => {
-          if (anime.id) {
-            animeSet.set(anime.id, anime);
-          }
+        list.forEach(item => {
+          const id = item.slug || item.id || item.animeId;
+          if (id) animeIds.add(id);
         });
       }
     };
 
-    // Aggregate anime from all available sections on the home page
-    processAnimeList(data.spotlight);
-    processAnimeList(data.trending);
-    processAnimeList(data.latestEpisode);
-    processAnimeList(data.topUpcoming);
-    processAnimeList(data.topAiring);
-    if (data.top10) {
-      processAnimeList(data.top10.today);
-      processAnimeList(data.top10.week);
-      processAnimeList(data.top10.month);
-    }
+    // Extract from all home page sections
+    Object.values(data).forEach(section => {
+      if (Array.isArray(section)) {
+        processList(section);
+      } else if (typeof section === 'object' && section !== null) {
+        Object.values(section).forEach(subList => processList(subList));
+      }
+    });
 
-    console.log(`✅ Found ${animeSet.size} unique anime pages.`);
+    console.log(`✅ Found ${animeIds.size} unique anime pages.`);
 
     // 2. Build XML Content
     let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -77,30 +74,35 @@ async function generateSitemap() {
   <url>
     <loc>${BASE_URL}${route}</loc>
     <changefreq>daily</changefreq>
-    <priority>0.8</priority>
+    <priority>${route === '/' ? '1.0' : '0.8'}</priority>
   </url>`;
     });
 
     // Add Dynamic Anime Routes
-    for (const [id] of animeSet) {
+    animeIds.forEach(id => {
+      // Add regular anime details route
       sitemap += `
   <url>
     <loc>${BASE_URL}/anime/${id}</loc>
     <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+      
+      // Add regional anime details route
+      sitemap += `
+  <url>
+    <loc>${BASE_URL}/regional/anime/${id}</loc>
+    <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>`;
-    }
+    });
 
     sitemap += `
 </urlset>`;
 
     // 3. Write to public/sitemap.xml
     const publicDir = path.resolve(__dirname, '../public');
-    
-    // Ensure public directory exists
-    if (!fs.existsSync(publicDir)) {
-      fs.mkdirSync(publicDir);
-    }
+    if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
 
     const filePath = path.join(publicDir, 'sitemap.xml');
     fs.writeFileSync(filePath, sitemap);
@@ -108,8 +110,22 @@ async function generateSitemap() {
     console.log(`🎉 Sitemap successfully generated at: ${filePath}`);
 
   } catch (error) {
-    console.error('❌ Error generating sitemap:', error);
-    process.exit(1);
+    console.error('❌ Error generating sitemap:', error.message);
+    // Continue even if API fails to at least have static routes
+    let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
+    STATIC_ROUTES.forEach(route => {
+      sitemap += `
+  <url>
+    <loc>${BASE_URL}${route}</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+    });
+    sitemap += `
+</urlset>`;
+    const filePath = path.join(path.resolve(__dirname, '../public'), 'sitemap.xml');
+    fs.writeFileSync(filePath, sitemap);
   }
 }
 
