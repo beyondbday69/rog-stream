@@ -518,7 +518,7 @@ export const AnimeDetail: React.FC = () => {
                                             : 'border-l-4 border-transparent hover:bg-dark-800'
                                     } ${isWatched && !isNextUp ? 'opacity-60 hover:opacity-100' : ''}`}
                                 >
-                                    <span className={`text-lg md:text-xl font-black font-mono transition-colors w-6 md:w-8 text-center ${
+                                    <span className={`text-xs md:text-sm font-black font-mono transition-colors min-w-[2.75rem] md:min-w-[3.5rem] text-right flex-shrink-0 tabular-nums ${
                                         isNextUp ? 'text-brand-400' : 'text-zinc-600 group-hover:text-zinc-400'
                                     }`}>
                                         {ep.number}
