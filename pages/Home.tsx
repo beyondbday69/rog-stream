@@ -6,7 +6,7 @@ import { Hero } from '../components/Hero';
 import { AnimeCard } from '../components/AnimeCard';
 import { ContinueWatchingCard } from '../components/ContinueWatchingCard'; // New Component
 import { HomeSkeleton, ContinueWatchingCardSkeleton } from '../components/Skeletons';
-import { ChevronRight, AlertTriangle, LayoutTemplate } from 'lucide-react';
+import { ChevronRight, AlertTriangle, Github } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getUserProgress, UserProgress } from '../services/firebase';
 import { motion } from 'framer-motion';
@@ -401,24 +401,16 @@ export const Home: React.FC = () => {
         
         {/* Genre Grid Removed - Now on separate page /genres */}
 
+        {/* GitHub Link */}
+        <div className="flex justify-center py-8">
+          <a href="https://github.com/beyondbday69/rog-stream" target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-dark-900 border border-dark-700 hover:border-zinc-600 rounded-sm transition-all group">
+              <Github className="w-4 h-4 text-zinc-500 group-hover:text-white transition-colors" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors">rog-stream</span>
+          </a>
+        </div>
+
       </div>
     </motion.div>
   );
-
-
-
-<div className="flex justify-center py-8">
-                    <a href="https://github.com/beyondbday69/rog-stream" target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-dark-900 border border-dark-700 hover:border-zinc-600 rounded-sm transition-all group">
-                        <Github className="w-4 h-4 text-zinc-500 group-hover:text-white transition-colors" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors">rog-stream</span>
-                    </a>
-                </div>
-            </div>
-        </motion.div>
-    );
-};
-
-
-
 };
